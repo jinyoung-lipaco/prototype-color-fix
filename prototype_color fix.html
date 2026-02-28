@@ -1,0 +1,2876 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>소행성 — 인터랙티브 프로토타입</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700;900&display=swap');
+
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  :root{
+    --pri:#A1788B;--pri-l:#C9A5B5;--pri-d:#8A6175;
+    --acc:#CF7C6B;--warm:#C4A265;--mint:#6B9E82;--sky:#7EA8B8;
+    --pink:#B87190;--yellow:#F0DFBE;
+    --bg:#F8F5F2;--card:#FFF;--text:#3A2F33;--sub:#97898D;--border:#E8E0DC;
+    --radius:14px;
+    --nav-h:60px;
+    --safe-bottom:env(safe-area-inset-bottom, 0px);
+  }
+  html,body{
+    font-family:'Noto Sans KR',sans-serif;
+    background:var(--bg);color:var(--text);line-height:1.6;
+    height:100%;overflow:hidden;
+    -webkit-font-smoothing:antialiased;
+  }
+
+  /* ═══════ APP SHELL ═══════ */
+  .app{height:100%;display:flex;flex-direction:column;position:relative;max-width:430px;margin:0 auto;background:var(--bg);}
+
+  /* Status bar */
+  .status-bar{
+    display:flex;justify-content:space-between;align-items:center;
+    padding:8px 20px 4px;font-size:11px;font-weight:600;color:var(--text);
+    background:var(--bg);flex-shrink:0;
+  }
+  .status-bar.trans{background:transparent;color:#fff;position:absolute;top:0;left:0;right:0;z-index:5;}
+
+  /* App header */
+  .app-header{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:2px 18px 8px;background:var(--bg);flex-shrink:0;
+  }
+  .app-logo{font-size:18px;font-weight:900;color:var(--pri);}
+  .app-logo span{color:var(--warm);}
+  .app-icons{display:flex;gap:12px;font-size:18px;align-items:center;}
+  .streak{
+    display:inline-flex;align-items:center;gap:3px;
+    background:linear-gradient(135deg,#CF7C6B,#C4A265);
+    color:#fff;font-size:10px;font-weight:800;padding:3px 8px;border-radius:10px;
+  }
+
+  /* Screen container */
+  .screens{flex:1;position:relative;overflow:hidden;}
+  .screen{
+    position:absolute;inset:0;overflow-y:auto;overflow-x:hidden;
+    scrollbar-width:none;background:var(--bg);
+    transition:transform .35s cubic-bezier(.4,0,.2,1), opacity .35s;
+    will-change:transform;padding-bottom:calc(var(--nav-h) + var(--safe-bottom) + 10px);
+  }
+  .screen::-webkit-scrollbar{display:none;}
+  .screen.hidden-left{transform:translateX(-30%);opacity:0;pointer-events:none;}
+  .screen.hidden-right{transform:translateX(100%);opacity:0;pointer-events:none;}
+  .screen.active{transform:translateX(0);opacity:1;pointer-events:auto;z-index:2;}
+
+  /* Sub-screen (slides from right) */
+  .sub-screen{z-index:10;}
+  .sub-screen.hidden-right{transform:translateX(100%);opacity:1;}
+
+  /* Bottom nav */
+  .bottom-nav{
+    position:absolute;bottom:0;left:0;right:0;z-index:20;
+    background:#fff;border-top:1px solid var(--border);
+    display:flex;justify-content:space-around;
+    padding:6px 0 calc(8px + var(--safe-bottom));
+  }
+  .nav-btn{
+    display:flex;flex-direction:column;align-items:center;gap:1px;
+    font-size:9px;color:var(--sub);font-weight:500;
+    background:none;border:none;cursor:pointer;padding:4px 8px;
+    position:relative;transition:color .2s;
+  }
+  .nav-btn .icon{font-size:20px;transition:transform .2s;}
+  .nav-btn.active{color:var(--pri);font-weight:700;}
+  .nav-btn.active .icon{transform:scale(1.1);}
+  .nav-btn .badge{
+    position:absolute;top:0;right:4px;width:16px;height:16px;
+    background:var(--acc);color:#fff;font-size:8px;font-weight:800;
+    border-radius:50%;display:flex;align-items:center;justify-content:center;
+  }
+
+  /* Back header */
+  .back-header{
+    display:flex;align-items:center;gap:10px;
+    padding:10px 16px;background:var(--bg);
+    font-size:15px;font-weight:700;cursor:pointer;flex-shrink:0;
+  }
+  .back-header .arrow{font-size:20px;}
+
+  /* ═══════ SEGMENT TABS ═══════ */
+  .seg-tabs{display:flex;gap:0;padding:0 16px 10px;flex-shrink:0;}
+  .seg-tab{
+    flex:1;text-align:center;padding:8px 0;font-size:13px;font-weight:600;
+    color:var(--sub);border-bottom:2px solid transparent;cursor:pointer;transition:all .2s;
+  }
+  .seg-tab.active{color:var(--pri);border-bottom-color:var(--pri);font-weight:800;}
+
+  /* ═══════ FAB WRITE BUTTON ═══════ */
+  .fab-write{
+    position:absolute;bottom:calc(var(--nav-h) + var(--safe-bottom) + 18px);right:16px;
+    z-index:50;width:52px;height:52px;border-radius:50%;
+    background:linear-gradient(135deg,var(--pri),#B88DA0);
+    color:#fff;border:none;cursor:pointer;
+    display:flex;align-items:center;justify-content:center;
+    font-size:24px;box-shadow:0 4px 16px rgba(161,120,139,0.35);
+    transition:transform .15s,box-shadow .15s;
+  }
+  .fab-write:active{transform:scale(0.9);}
+
+  /* ═══════ WRITE SCREEN ═══════ */
+  .write-screen-header{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:12px 16px;border-bottom:1px solid var(--border);background:#fff;
+  }
+  .write-screen-header .ws-cancel{font-size:14px;color:var(--sub);font-weight:600;cursor:pointer;background:none;border:none;font-family:inherit;}
+  .write-screen-header .ws-title{font-size:15px;font-weight:800;}
+  .write-screen-header .ws-submit{
+    font-size:13px;font-weight:700;color:#fff;
+    background:var(--pri);border:none;padding:7px 16px;border-radius:10px;
+    cursor:pointer;font-family:inherit;transition:opacity .15s;
+  }
+  .write-screen-header .ws-submit:disabled{opacity:0.4;cursor:default;}
+  .write-category-bar{
+    display:flex;gap:6px;padding:12px 16px;border-bottom:1px solid var(--border);
+    overflow-x:auto;scrollbar-width:none;background:#fff;
+  }
+  .write-category-bar::-webkit-scrollbar{display:none;}
+  .write-cat{
+    padding:6px 14px;border-radius:20px;font-size:12px;font-weight:600;
+    border:1.5px solid var(--border);color:var(--sub);cursor:pointer;
+    white-space:nowrap;transition:all .15s;background:#fff;
+  }
+  .write-cat.active{border-color:var(--pri);color:var(--pri);background:#F3EBE9;}
+  .write-body{padding:16px;flex:1;display:flex;flex-direction:column;background:#fff;}
+  .write-title-input{
+    width:100%;font-size:16px;font-weight:700;border:none;outline:none;
+    padding:0 0 12px;font-family:inherit;color:var(--text);
+    border-bottom:1px solid var(--border);margin-bottom:12px;
+  }
+  .write-title-input::placeholder{color:#C4C2D4;}
+  .write-textarea{
+    width:100%;flex:1;min-height:180px;font-size:14px;line-height:1.8;
+    border:none;outline:none;resize:none;font-family:inherit;color:var(--text);
+  }
+  .write-textarea::placeholder{color:#C4C2D4;}
+  .write-toolbar{
+    display:flex;align-items:center;gap:8px;padding:12px 16px;
+    border-top:1px solid var(--border);background:#fff;
+  }
+  .write-tool-btn{
+    width:36px;height:36px;border-radius:10px;border:1px solid var(--border);
+    background:#fff;display:flex;align-items:center;justify-content:center;
+    font-size:16px;cursor:pointer;transition:background .1s;
+  }
+  .write-tool-btn:active{background:var(--bg);}
+  .write-tag-input{
+    flex:1;font-size:12px;border:none;outline:none;
+    padding:8px 0;font-family:inherit;color:var(--sub);
+  }
+  .write-tag-input::placeholder{color:#C4C2D4;}
+
+  /* ═══════ COMMUNITY TABS CONTENT ═══════ */
+  .comm-tab-content{display:none;}
+  .comm-tab-content.active{display:block;}
+  .popular-badge{
+    display:inline-flex;align-items:center;gap:3px;
+    font-size:9px;font-weight:700;color:var(--acc);
+    background:#FAF0EE;padding:2px 7px;border-radius:6px;
+  }
+  .topic-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:12px 14px;}
+  .topic-card{
+    background:#fff;border-radius:14px;padding:16px 14px;
+    border:1px solid var(--border);cursor:pointer;text-align:center;
+    transition:transform .15s;
+  }
+  .topic-card:active{transform:scale(0.97);}
+  .topic-card .tc-icon{font-size:28px;margin-bottom:6px;}
+  .topic-card .tc-name{font-size:13px;font-weight:700;margin-bottom:2px;}
+  .topic-card .tc-count{font-size:10px;color:var(--sub);}
+  .month-grid{padding:12px 14px;}
+  .month-card{
+    display:flex;align-items:center;gap:12px;
+    background:#fff;border-radius:14px;padding:14px 16px;
+    border:1px solid var(--border);margin-bottom:8px;
+    cursor:pointer;transition:transform .15s;
+  }
+  .month-card:active{transform:scale(0.98);}
+  .month-card .mc-emoji{font-size:24px;flex-shrink:0;}
+  .month-card .mc-info{flex:1;}
+  .month-card .mc-info h5{font-size:13px;font-weight:700;margin-bottom:1px;}
+  .month-card .mc-info p{font-size:10px;color:var(--sub);}
+  .month-card .mc-count{font-size:12px;font-weight:700;color:var(--pri);}
+
+  /* ═══════ LIVE BANNER ═══════ */
+  .live-banner{
+    margin:0 14px 10px;padding:8px 14px;
+    background:linear-gradient(135deg,#EDF5EE,#F2F5EC);
+    border-radius:12px;border:1px solid #C8D8C6;
+    display:flex;align-items:center;gap:8px;
+    font-size:12px;color:#5A8A62;font-weight:600;
+  }
+  .live-dot{
+    width:8px;height:8px;border-radius:50%;background:#6B9E82;flex-shrink:0;
+    animation:dotBlink 1.5s infinite;
+  }
+  @keyframes dotBlink{0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(107,158,130,0.4);}50%{opacity:0.6;box-shadow:0 0 0 4px rgba(107,158,130,0);}}
+  @keyframes fadeInUp{from{opacity:0;transform:translateY(20px);}to{opacity:1;transform:translateY(0);}}
+
+  /* ═══════ COMMENT / DETAIL ═══════ */
+  .comment-input-area{
+    position:sticky;bottom:0;background:#fff;border-top:1px solid var(--border);
+    padding:10px 14px;display:flex;gap:8px;align-items:center;z-index:5;
+  }
+  .comment-input{
+    flex:1;padding:10px 14px;border:1.5px solid var(--border);
+    border-radius:20px;font-size:13px;outline:none;font-family:inherit;
+  }
+  .comment-input:focus{border-color:var(--pri);}
+  .comment-send{
+    width:36px;height:36px;border-radius:50%;
+    background:var(--pri);color:#fff;border:none;
+    display:flex;align-items:center;justify-content:center;
+    font-size:16px;cursor:pointer;flex-shrink:0;
+  }
+  .comment-item{
+    display:flex;gap:10px;padding:12px 0;border-bottom:1px solid var(--border);
+  }
+  .comment-item:last-child{border-bottom:none;}
+  .ci-avatar{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;}
+  .ci-body{flex:1;}
+  .ci-name{font-size:11px;font-weight:700;}
+  .ci-meta{font-size:9px;color:var(--sub);margin-left:6px;}
+  .ci-text{font-size:12px;line-height:1.6;margin-top:3px;}
+  .ci-actions{display:flex;gap:12px;margin-top:4px;font-size:10px;color:var(--sub);}
+  .ci-actions span{cursor:pointer;}
+  .ci-actions span:active{color:var(--pri);}
+
+  /* 답변 카드 */
+  .answer-item{
+    background:#fff;border-radius:12px;padding:12px 14px;
+    border:1px solid var(--border);margin-bottom:8px;
+  }
+  .answer-top{display:flex;align-items:center;gap:8px;margin-bottom:6px;}
+  .answer-avatar{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;}
+  .answer-name{font-size:11px;font-weight:700;}
+  .answer-meta{font-size:9px;color:var(--sub);}
+  .answer-text{font-size:12px;line-height:1.7;}
+  .answer-like{
+    display:inline-flex;align-items:center;gap:3px;margin-top:6px;
+    font-size:10px;color:var(--sub);cursor:pointer;
+  }
+  .answer-like.on{color:var(--pri);}
+  .live-banner strong{font-weight:900;color:#3D6E47;}
+
+  /* ═══════ MONTH MATCH ═══════ */
+  .month-match{
+    margin:0 14px 10px;padding:10px 14px;
+    background:linear-gradient(135deg,#FAF3EA,#FAF6EC);
+    border-radius:12px;border:1px solid #E8D8C2;
+    display:flex;align-items:center;gap:10px;
+    cursor:pointer;transition:transform .15s;
+  }
+  .month-match:active{transform:scale(0.97);}
+  .mm-icon{font-size:22px;flex-shrink:0;}
+  .mm-text{flex:1;}
+  .mm-text h4{font-size:11px;font-weight:700;color:#A67B3D;}
+  .mm-text p{font-size:10px;color:#B88D4A;}
+  .mm-btn{
+    font-size:10px;font-weight:700;color:#fff;
+    background:linear-gradient(135deg,#C4A265,#CEAF78);
+    padding:5px 12px;border-radius:10px;flex-shrink:0;
+  }
+
+  /* ═══════ WRITE BAR ═══════ */
+  .write-bar{
+    margin:0 14px 12px;background:#fff;border-radius:14px;
+    border:1px solid var(--border);padding:10px 14px;
+    display:flex;align-items:center;gap:10px;
+  }
+  .write-avatar{
+    width:32px;height:32px;border-radius:50%;
+    background:linear-gradient(135deg,#E8C9A0,#D4AA78);
+    display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;
+  }
+  .write-input{
+    flex:1;font-size:12px;color:var(--sub);
+    background:var(--bg);padding:8px 12px;border-radius:20px;
+  }
+  .write-cam{font-size:18px;}
+
+  /* ═══════ DAILY QUESTION ═══════ */
+  .daily-q{
+    margin:0 14px 12px;border-radius:16px;overflow:hidden;
+    background:linear-gradient(135deg,#F5EDEB,#F3E8E5);
+    border:2px solid #C9A5B0;position:relative;
+    padding:16px;cursor:pointer;transition:transform .15s;
+  }
+  .daily-q:active{transform:scale(0.98);}
+  .daily-q::before{
+    content:'';position:absolute;top:-30%;right:-10%;
+    width:100px;height:100px;border-radius:50%;
+    background:rgba(201,165,176,0.2);
+  }
+  .dq-top{display:flex;align-items:center;gap:8px;margin-bottom:10px;position:relative;z-index:1;}
+  .dq-badge{font-size:9px;font-weight:800;color:#8A6175;background:rgba(138,97,117,0.12);padding:3px 10px;border-radius:8px;}
+  .dq-new{font-size:8px;font-weight:700;color:#fff;background:var(--acc);padding:2px 6px;border-radius:6px;}
+  .dq-question{font-size:15px;font-weight:800;line-height:1.6;color:#6B4555;position:relative;z-index:1;margin-bottom:10px;}
+  .dq-stats{display:flex;align-items:center;gap:12px;font-size:11px;color:#8A6175;font-weight:500;position:relative;z-index:1;}
+  .dq-reply{
+    margin-left:auto;font-size:11px;font-weight:700;color:#fff;
+    background:linear-gradient(135deg,#A1788B,#C9A5B5);
+    padding:6px 14px;border-radius:10px;
+  }
+
+  /* ═══════ FEED POST ═══════ */
+  .post{
+    margin:0 14px 12px;background:#fff;border-radius:16px;
+    border:1px solid var(--border);overflow:hidden;transition:transform .15s;
+  }
+  .post:active{transform:scale(0.98);}
+  .post-head{display:flex;align-items:center;gap:10px;padding:12px 14px 0;}
+  .p-avatar{
+    width:36px;height:36px;border-radius:50%;
+    display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;
+  }
+  .p-avatar.g1{background:linear-gradient(135deg,#E8C9A0,#D4AA78);}
+  .p-avatar.g2{background:linear-gradient(135deg,#9BBECA,#7EA8B8);}
+  .p-avatar.g3{background:linear-gradient(135deg,#C9929F,#B87190);}
+  .p-avatar.g4{background:linear-gradient(135deg,#8DB8A0,#6B9E82);}
+  .p-name{font-size:13px;font-weight:700;}
+  .p-meta{font-size:10px;color:var(--sub);}
+  .p-tier{font-size:9px;padding:2px 6px;border-radius:6px;font-weight:700;}
+  .p-tier.t1{background:#F3EBE9;color:var(--pri);}
+  .p-tier.t2{background:#ECF3EE;color:var(--mint);}
+  .p-tier.t3{background:#FAF0EE;color:var(--acc);}
+  .p-badges{display:flex;gap:4px;margin-top:2px;}
+  .p-more{margin-left:auto;font-size:16px;color:var(--sub);}
+  .p-body{padding:10px 14px 12px;font-size:13px;line-height:1.7;}
+  .p-body .tag{color:var(--pri);font-weight:600;}
+  .p-image{width:100%;height:140px;display:flex;align-items:center;justify-content:center;font-size:48px;}
+
+  /* Emoji reactions */
+  .reactions{display:flex;align-items:center;gap:0;padding:6px 8px;border-top:1px solid var(--border);}
+  .react-btn{
+    flex:1;display:flex;flex-direction:column;align-items:center;gap:1px;
+    font-size:10px;color:var(--sub);font-weight:600;cursor:pointer;
+    padding:4px 2px;border-radius:8px;transition:all .15s;border:none;background:none;
+  }
+  .react-btn:active{transform:scale(1.2);}
+  .react-btn.on{color:var(--pri);}
+  .react-btn .ri{font-size:16px;}
+  .react-btn .rc{font-size:9px;font-weight:700;}
+  .react-btn .rl{font-size:7px;color:var(--sub);font-weight:500;}
+
+  /* ═══════ EMPATHY VOTE ═══════ */
+  .empathy{
+    margin:0 14px 12px;border-radius:16px;overflow:hidden;
+    background:#fff;border:2px solid var(--pink);padding:16px;
+  }
+  .emp-top{display:flex;align-items:center;gap:6px;margin-bottom:10px;}
+  .emp-badge{font-size:9px;font-weight:800;color:var(--pink);background:rgba(184,113,144,0.08);padding:3px 10px;border-radius:8px;}
+  .emp-hot{font-size:8px;font-weight:700;color:#fff;background:var(--pink);padding:2px 6px;border-radius:6px;}
+  .emp-q{font-size:15px;font-weight:800;line-height:1.6;margin-bottom:12px;}
+  .emp-opts{display:flex;gap:8px;}
+  .emp-opt{
+    flex:1;padding:14px 10px;border-radius:14px;text-align:center;
+    cursor:pointer;border:2px solid var(--border);
+    transition:all .2s;position:relative;overflow:hidden;background:#fff;
+  }
+  .emp-opt.sel{border-color:var(--pink);background:rgba(184,113,144,0.06);}
+  .emp-opt-emoji{font-size:28px;margin-bottom:6px;}
+  .emp-opt-text{font-size:12px;font-weight:700;margin-bottom:2px;}
+  .emp-opt-pct{font-size:16px;font-weight:900;color:var(--pink);}
+  .emp-opt-bar{
+    position:absolute;bottom:0;left:0;right:0;height:4px;
+    background:linear-gradient(90deg,var(--pink),#D4A0B3);
+    border-radius:0 0 12px 12px;transform-origin:left;
+  }
+  .emp-stats{display:flex;gap:8px;margin-top:10px;font-size:10px;color:var(--sub);}
+
+  /* ═══════ HOT HIGHLIGHT ═══════ */
+  .hot-hl{
+    margin:0 14px 12px;padding:12px 14px;
+    background:linear-gradient(135deg,#FAF0EE,#FAF5ED);
+    border-radius:14px;border:1px solid #EDDCD8;
+    display:flex;align-items:center;gap:10px;
+    cursor:pointer;transition:transform .15s;
+  }
+  .hot-hl:active{transform:scale(0.98);}
+  .hot-fire{font-size:22px;flex-shrink:0;animation:fireA .5s infinite alternate;}
+  @keyframes fireA{0%{transform:scale(1);}100%{transform:scale(1.15);}}
+  .hot-text{flex:1;}
+  .hot-text h4{font-size:11px;font-weight:800;color:var(--acc);margin-bottom:2px;}
+  .hot-text p{font-size:12px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .hot-go{font-size:10px;font-weight:700;color:var(--acc);background:#fff;padding:4px 10px;border-radius:8px;flex-shrink:0;}
+
+  /* ═══════ 별똥별마켓 SCREEN ═══════ */
+  .std-header{
+    padding:14px 18px 10px;background:#fff;
+    display:flex;align-items:center;gap:10px;
+    border-bottom:1px solid var(--border);
+  }
+  .std-logo{
+    width:36px;height:36px;border-radius:50%;
+    background:linear-gradient(135deg,var(--pri),#B88DA0);
+    display:flex;align-items:center;justify-content:center;
+    font-size:18px;flex-shrink:0;
+  }
+  .std-header-text h2{font-size:17px;font-weight:900;color:var(--text);letter-spacing:-0.5px;}
+  .std-header-text .std-sub{font-size:10px;color:var(--sub);}
+  .std-points-pill{
+    margin-left:auto;
+    display:inline-flex;align-items:center;gap:4px;
+    background:linear-gradient(135deg,#FAF5ED,#FBF9F4);
+    border:1px solid #E8D8C2;
+    padding:5px 12px;border-radius:16px;
+    font-size:11px;font-weight:700;color:#A67B3D;
+  }
+
+  .market-seg{display:flex;gap:0;background:#fff;border-bottom:1px solid var(--border);}
+  .market-seg-tab{
+    flex:1;text-align:center;padding:12px 0;font-size:12px;font-weight:600;
+    color:var(--sub);border-bottom:2.5px solid transparent;cursor:pointer;white-space:nowrap;
+    transition:all .2s;
+  }
+  .market-seg-tab.active{color:var(--text);border-bottom-color:var(--text);font-weight:800;}
+
+  /* 리뷰약속 / 응모 카드 — 실제 앱 스타일 */
+  .std-card{
+    margin:12px 14px;background:#fff;border-radius:16px;
+    border:1px solid var(--border);overflow:hidden;
+    cursor:pointer;transition:transform .15s;
+    box-shadow:0 2px 8px rgba(0,0,0,0.04);
+  }
+  .std-card:active{transform:scale(0.98);}
+  .std-card-img{
+    height:180px;display:flex;align-items:center;justify-content:center;
+    font-size:64px;position:relative;
+  }
+  .std-card-status{
+    position:absolute;top:12px;right:12px;
+    font-size:10px;font-weight:700;padding:5px 12px;border-radius:10px;
+  }
+  .std-card-status.live{background:var(--pri);color:#fff;}
+  .std-card-status.ended{background:rgba(0,0,0,0.55);color:#fff;}
+  .std-card-status.soon{background:var(--warm);color:#fff;}
+  .std-card-timer{
+    position:absolute;top:12px;left:12px;
+    font-size:10px;font-weight:700;padding:5px 12px;border-radius:10px;
+    background:rgba(0,0,0,0.55);color:#fff;
+    display:flex;align-items:center;gap:4px;
+  }
+  .std-card-body{padding:14px 16px 16px;}
+  .std-card-date-row{font-size:11px;color:var(--sub);margin-bottom:6px;}
+  .std-card-brand{font-size:11px;color:var(--sub);font-weight:500;margin-bottom:2px;}
+  .std-card-name{font-size:15px;font-weight:800;line-height:1.5;margin-bottom:10px;color:var(--text);}
+  .std-card-meta{
+    display:flex;align-items:center;gap:6px;flex-wrap:wrap;
+    font-size:11px;color:var(--sub);
+  }
+  .std-card-meta .chip{
+    display:inline-flex;align-items:center;gap:3px;
+    background:#F3EBE9;padding:4px 10px;border-radius:8px;font-weight:600;
+  }
+  .std-card-meta .chip.star{color:var(--warm);background:#FAF5ED;}
+  .std-card-meta .chip.people{color:var(--pri);background:#F3EBE9;}
+  .std-card-meta .chip.count{color:var(--sub);background:#F5F5F5;}
+
+  /* 별똥별 교환 — 2열 그리드 (실제 앱) */
+  .std-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:12px 14px 16px;}
+  .std-grid-card{
+    background:#fff;border-radius:14px;border:1px solid var(--border);
+    overflow:hidden;cursor:pointer;transition:transform .15s;
+    box-shadow:0 2px 8px rgba(0,0,0,0.04);
+  }
+  .std-grid-card:active{transform:scale(0.97);}
+  .std-grid-img{
+    height:120px;display:flex;align-items:center;justify-content:center;
+    font-size:44px;position:relative;
+  }
+  .std-grid-img .left-tag{
+    position:absolute;top:8px;right:8px;
+    font-size:9px;font-weight:700;padding:3px 8px;border-radius:8px;
+    background:var(--acc);color:#fff;
+  }
+  .std-grid-body{padding:10px 12px 12px;}
+  .std-grid-body h4{font-size:12px;font-weight:700;line-height:1.4;margin-bottom:6px;
+    display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+  .std-grid-body .price{
+    display:flex;align-items:center;gap:4px;
+    font-size:12px;font-weight:800;color:var(--warm);
+  }
+  .std-grid-body .stock{font-size:10px;color:var(--sub);margin-top:4px;}
+
+  .sec-head{display:flex;justify-content:space-between;align-items:center;padding:16px 14px 10px;}
+  .sec-head h3{font-size:14px;font-weight:800;}
+  .sec-head a{font-size:12px;color:var(--pri);font-weight:600;text-decoration:none;}
+
+  .prod-scroll{display:flex;gap:12px;padding:0 14px 16px;overflow-x:auto;scrollbar-width:none;}
+  .prod-scroll::-webkit-scrollbar{display:none;}
+  .prod-card{flex:0 0 140px;background:#fff;border-radius:var(--radius);overflow:hidden;border:1px solid var(--border);cursor:pointer;transition:transform .15s;}
+  .prod-card:active{transform:scale(0.97);}
+  .prod-img{height:100px;background:#F3EBE9;display:flex;align-items:center;justify-content:center;font-size:36px;position:relative;}
+  .prod-badge{position:absolute;top:6px;left:6px;background:var(--warm);color:#fff;font-size:8px;font-weight:700;padding:2px 6px;border-radius:6px;}
+  .prod-info{padding:8px 10px;}
+  .prod-info h4{font-size:11px;font-weight:600;line-height:1.4;margin-bottom:3px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+  .prod-price{font-size:13px;font-weight:800;color:var(--acc);}
+  .prod-price small{font-size:9px;color:var(--sub);font-weight:400;text-decoration:line-through;margin-left:3px;}
+  .prod-tags{display:flex;gap:3px;margin-top:4px;flex-wrap:wrap;}
+  .prod-tag{font-size:8px;padding:2px 5px;border-radius:5px;background:var(--bg);color:var(--pri);font-weight:600;}
+
+  /* ═══════ VOTE DETAIL ═══════ */
+  .vd-header{padding:16px 18px;background:linear-gradient(135deg,var(--pri),#B88DA0);color:#fff;}
+  .vd-header h2{font-size:18px;font-weight:800;margin-bottom:4px;}
+  .vd-header p{font-size:12px;opacity:0.8;}
+  .vd-item{
+    display:flex;align-items:center;gap:12px;padding:14px 16px;background:#fff;
+    border-radius:12px;margin:0 14px 10px;border:1.5px solid var(--border);
+    cursor:pointer;transition:all .15s;position:relative;overflow:hidden;
+  }
+  .vd-item:active{transform:scale(0.98);}
+  .vd-item.voted{border-color:var(--pri);background:#FAFAFF;}
+  .vd-bar{position:absolute;left:0;top:0;bottom:0;background:linear-gradient(90deg,rgba(161,120,139,0.1),rgba(161,120,139,0.02));transition:width 1s ease;}
+  .vd-icon{font-size:22px;position:relative;z-index:1;}
+  .vd-text{flex:1;position:relative;z-index:1;}
+  .vd-text h4{font-size:14px;font-weight:600;}
+  .vd-text p{font-size:11px;color:var(--sub);}
+  .vd-pct{font-size:18px;font-weight:800;color:var(--pri);z-index:1;}
+  .vd-meta{text-align:center;padding:14px;font-size:12px;color:var(--sub);}
+  .vd-meta strong{color:var(--pri);}
+  .vd-cta{
+    margin:0 14px;padding:14px 18px;
+    background:linear-gradient(135deg,#FAF5ED,#FBF9F4);
+    border:1px solid #E8D8C2;border-radius:12px;
+    display:flex;align-items:center;gap:10px;
+    font-size:12px;font-weight:600;color:#A67B3D;cursor:pointer;
+  }
+
+  /* ═══════ PRODUCT DETAIL ═══════ */
+  .pd-image{height:200px;background:linear-gradient(135deg,#F3EBE9,#EDE3E0);display:flex;align-items:center;justify-content:center;font-size:72px;}
+  .pd-body{padding:18px;}
+  .pd-badges{display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap;}
+  .pd-badge{font-size:10px;font-weight:700;padding:4px 10px;border-radius:8px;}
+  .pd-badge.community{background:#F3EBE9;color:var(--pri);}
+  .pd-badge.best{background:#FAF0EE;color:var(--acc);}
+  .pd-badge.value{background:#ECF3EE;color:var(--mint);}
+  .pd-name{font-size:16px;font-weight:700;line-height:1.5;margin-bottom:6px;}
+  .pd-price-row{display:flex;align-items:baseline;gap:8px;margin-bottom:14px;}
+  .pd-discount{font-size:14px;font-weight:800;color:var(--acc);}
+  .pd-price{font-size:20px;font-weight:900;}
+  .pd-original{font-size:13px;color:var(--sub);text-decoration:line-through;}
+  .pd-criteria{background:var(--bg);border-radius:12px;padding:14px 16px;margin-bottom:16px;}
+  .pd-criteria-title{font-size:12px;font-weight:700;color:var(--pri);margin-bottom:10px;display:flex;align-items:center;gap:6px;}
+  .pd-criteria-item{display:flex;align-items:center;gap:8px;margin-bottom:6px;font-size:12px;}
+  .pd-criteria-item .check{color:var(--mint);font-weight:700;}
+  .pd-reviews{display:flex;gap:10px;margin-bottom:16px;}
+  .pd-review-chip{flex:1;background:#fff;border:1px solid var(--border);border-radius:10px;padding:10px;text-align:center;}
+  .pd-review-chip .num{font-size:20px;font-weight:900;color:var(--pri);}
+  .pd-review-chip .lab{font-size:10px;color:var(--sub);font-weight:500;}
+  .coupang-btn{
+    display:flex;align-items:center;justify-content:center;gap:8px;
+    width:100%;padding:15px;
+    background:linear-gradient(135deg,var(--acc),#D99585);
+    color:#fff;border:none;border-radius:14px;font-size:15px;font-weight:800;
+    cursor:pointer;box-shadow:0 4px 16px rgba(207,124,107,0.3);
+    transition:transform .1s;margin-bottom:8px;
+  }
+  .coupang-btn:active{transform:scale(0.98);}
+  .coupang-sub{text-align:center;font-size:10px;color:var(--sub);}
+
+  /* ═══════ 스탠다드 SCREEN ═══════ */
+  .std-screen-header{
+    padding:20px 18px 14px;
+    background:linear-gradient(135deg,#F3EBE9,#EDE3E0);
+    border-bottom:1px solid var(--border);
+  }
+  .std-screen-header h2{font-size:18px;font-weight:900;color:var(--text);margin-bottom:2px;}
+  .std-screen-header p{font-size:12px;color:var(--sub);line-height:1.6;}
+  .std-screen-header .std-stat-row{
+    display:flex;gap:12px;margin-top:12px;
+  }
+  .std-screen-header .std-stat{
+    display:flex;align-items:center;gap:4px;
+    font-size:11px;font-weight:600;color:var(--pri);
+    background:#fff;padding:5px 12px;border-radius:10px;
+  }
+
+  /* 카테고리 투표 카드 */
+  .vote-category{
+    margin:12px 14px;background:#fff;border-radius:16px;
+    border:1px solid var(--border);overflow:hidden;
+    cursor:pointer;transition:transform .15s;
+    box-shadow:0 2px 8px rgba(0,0,0,0.04);
+  }
+  .vote-category:active{transform:scale(0.98);}
+  .vc-top{
+    display:flex;align-items:center;gap:12px;padding:14px 16px;
+  }
+  .vc-icon{
+    width:44px;height:44px;border-radius:12px;
+    display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;
+  }
+  .vc-info{flex:1;}
+  .vc-info h4{font-size:14px;font-weight:800;margin-bottom:2px;}
+  .vc-info p{font-size:11px;color:var(--sub);}
+  .vc-arrow{font-size:14px;color:var(--sub);}
+  .vc-bar-row{padding:0 16px 10px;display:flex;align-items:center;gap:8px;}
+  .vc-bar-track{flex:1;height:6px;background:#F3EBE9;border-radius:6px;overflow:hidden;}
+  .vc-bar-fill{height:100%;border-radius:6px;background:linear-gradient(90deg,var(--pri),var(--pri-l));}
+  .vc-bar-label{font-size:10px;font-weight:700;color:var(--pri);white-space:nowrap;}
+  .vc-bottom{
+    display:flex;gap:0;border-top:1px solid var(--border);
+  }
+  .vc-stat{
+    flex:1;text-align:center;padding:10px 0;
+    font-size:10px;color:var(--sub);
+    border-right:1px solid var(--border);
+  }
+  .vc-stat:last-child{border-right:none;}
+  .vc-stat strong{display:block;font-size:14px;font-weight:800;color:var(--text);margin-bottom:1px;}
+  .vc-status-badge{
+    font-size:9px;font-weight:700;padding:3px 8px;border-radius:8px;
+    margin-left:auto;flex-shrink:0;
+  }
+  .vc-status-badge.active{background:#ECF3EE;color:var(--mint);}
+  .vc-status-badge.done{background:#F3EBE9;color:var(--pri);}
+  .vc-status-badge.hot{background:#FAF0EE;color:var(--acc);}
+
+  /* 인정템 가로 스크롤 */
+  .approved-section{padding:16px 0 0;}
+  .approved-section .sec-title{
+    padding:0 16px 10px;font-size:14px;font-weight:800;
+    display:flex;align-items:center;gap:6px;
+  }
+  .approved-scroll{display:flex;gap:10px;padding:0 14px 16px;overflow-x:auto;scrollbar-width:none;}
+  .approved-scroll::-webkit-scrollbar{display:none;}
+  .approved-card{
+    flex:0 0 150px;background:#fff;border-radius:14px;
+    border:1px solid var(--border);overflow:hidden;cursor:pointer;
+    transition:transform .15s;box-shadow:0 2px 6px rgba(0,0,0,0.04);
+  }
+  .approved-card:active{transform:scale(0.97);}
+  .approved-card-img{
+    height:100px;display:flex;align-items:center;justify-content:center;
+    font-size:36px;position:relative;
+  }
+  .approved-card-img .a-badge{
+    position:absolute;top:6px;left:6px;
+    font-size:8px;font-weight:700;padding:3px 7px;border-radius:6px;
+    background:var(--pri);color:#fff;
+  }
+  .approved-card-body{padding:8px 10px 10px;}
+  .approved-card-body h5{font-size:11px;font-weight:700;line-height:1.4;margin-bottom:4px;
+    display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+  .approved-card-body .a-criteria{font-size:9px;color:var(--mint);font-weight:600;margin-bottom:2px;}
+  .approved-card-body .a-price{font-size:12px;font-weight:800;color:var(--acc);}
+
+  /* ═══════ PROFILE SCREEN ═══════ */
+  .prof-header{text-align:center;padding:40px 18px 20px;background:linear-gradient(135deg,var(--pri),#B88DA0);color:#fff;}
+  .prof-avatar{
+    width:72px;height:72px;border-radius:50%;
+    background:linear-gradient(135deg,#E8C9A0,#D4AA78);
+    display:flex;align-items:center;justify-content:center;
+    font-size:32px;margin:0 auto 10px;border:3px solid rgba(255,255,255,0.3);
+  }
+  .prof-name{font-size:18px;font-weight:800;margin-bottom:2px;}
+  .prof-since{font-size:11px;opacity:0.7;}
+  .grade-card{
+    margin:-20px 14px 14px;background:#fff;border-radius:16px;
+    padding:18px;border:1px solid var(--border);
+    box-shadow:0 4px 16px rgba(0,0,0,0.06);position:relative;z-index:2;
+  }
+  .grade-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+  .grade-current{display:flex;align-items:center;gap:8px;}
+  .grade-icon{font-size:28px;}
+  .grade-info h4{font-size:14px;font-weight:800;}
+  .grade-info p{font-size:10px;color:var(--sub);}
+  .grade-next{font-size:10px;color:var(--pri);font-weight:600;background:#F3EBE9;padding:4px 10px;border-radius:8px;}
+  .grade-prog{margin-bottom:14px;}
+  .grade-prog-label{display:flex;justify-content:space-between;font-size:11px;color:var(--sub);margin-bottom:4px;}
+  .grade-prog-label strong{color:var(--pri);}
+  .grade-bar{height:8px;background:#F3EBE9;border-radius:8px;overflow:hidden;}
+  .grade-bar-fill{height:100%;border-radius:8px;background:linear-gradient(90deg,var(--pri),var(--pri-l));transition:width 1s ease;}
+  .grade-tiers{display:flex;justify-content:space-between;align-items:center;padding:10px 0 0;border-top:1px solid var(--border);}
+  .tier{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:9px;color:var(--sub);font-weight:500;}
+  .tier .t-icon{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;background:#F3EBE9;border:1.5px solid var(--border);}
+  .tier.current .t-icon{background:var(--pri);border-color:var(--pri);}
+  .tier.current{color:var(--pri);font-weight:700;}
+  .tier.done .t-icon{background:#ECF3EE;border-color:#C0DCC8;}
+  .tier.done{color:var(--mint);}
+  .tier-line{flex:1;height:2px;background:var(--border);margin:0 -2px;}
+  .tier-line.done{background:var(--mint);}
+  .stats-row{display:flex;gap:8px;padding:0 14px 14px;}
+  .stat-box{flex:1;background:#fff;border-radius:12px;padding:12px;border:1px solid var(--border);text-align:center;}
+  .stat-box .s-num{font-size:20px;font-weight:900;color:var(--pri);}
+  .stat-box .s-label{font-size:10px;color:var(--sub);margin-top:2px;}
+  .mission-section{padding:14px;}
+  .mission-title{font-size:13px;font-weight:700;margin-bottom:10px;display:flex;align-items:center;gap:6px;}
+  .mission-card{background:#fff;border-radius:12px;padding:12px 14px;border:1px solid var(--border);margin-bottom:8px;display:flex;align-items:center;gap:12px;}
+  .mission-icon{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;}
+  .mission-icon.vote{background:#F3EBE9;}
+  .mission-icon.review{background:#FAF5ED;}
+  .mission-icon.streak{background:#E8F0F2;}
+  .mission-text{flex:1;}
+  .mission-text h5{font-size:12px;font-weight:700;margin-bottom:2px;}
+  .mission-text p{font-size:10px;color:var(--sub);}
+  .mission-prog{font-size:11px;font-weight:800;color:var(--pri);}
+  .mission-prog.done{color:var(--mint);}
+
+  /* ═══════ PROFILE MENU ═══════ */
+  .prof-menu{padding:0 14px 14px;}
+  .prof-menu-title{font-size:13px;font-weight:700;margin-bottom:8px;padding:0 2px;color:var(--sub);}
+  .prof-menu-item{
+    display:flex;align-items:center;gap:12px;
+    background:#fff;border-radius:12px;padding:14px 16px;
+    border:1px solid var(--border);margin-bottom:6px;
+    cursor:pointer;transition:transform .1s;
+  }
+  .prof-menu-item:active{transform:scale(0.98);}
+  .prof-menu-icon{
+    width:36px;height:36px;border-radius:10px;
+    display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0;
+  }
+  .prof-menu-text{flex:1;}
+  .prof-menu-text h5{font-size:13px;font-weight:700;}
+  .prof-menu-text p{font-size:10px;color:var(--sub);}
+  .prof-menu-arrow{font-size:14px;color:var(--sub);}
+  .prof-menu-val{font-size:12px;font-weight:700;color:var(--pri);}
+  .prof-danger{
+    display:flex;justify-content:center;gap:20px;
+    padding:10px 14px 30px;
+  }
+  .prof-danger-btn{
+    font-size:12px;color:var(--sub);font-weight:500;
+    background:none;border:none;cursor:pointer;
+    padding:8px 16px;border-radius:8px;transition:all .15s;
+  }
+  .prof-danger-btn:active{background:#F5F5F5;}
+  .prof-danger-btn.red{color:var(--acc);}
+
+  /* ═══════ SUB SCREEN COMMON ═══════ */
+  .sub-content{padding:16px 14px;}
+  .sub-empty{text-align:center;padding:40px 20px;color:var(--sub);font-size:13px;line-height:1.7;}
+  .sub-empty .sub-empty-icon{font-size:40px;margin-bottom:12px;}
+
+  /* 별똥별 내역 */
+  .star-summary{
+    display:flex;align-items:center;justify-content:center;gap:8px;
+    padding:20px;margin:0 0 16px;
+    background:linear-gradient(135deg,#FAF5ED,#FBF9F4);
+    border:1px solid #E8D8C2;border-radius:16px;text-align:center;
+  }
+  .star-summary .star-total{font-size:28px;font-weight:900;color:#A67B3D;}
+  .star-summary .star-label{font-size:12px;color:#9E8248;font-weight:600;}
+  .star-history-item{
+    display:flex;align-items:center;gap:12px;
+    padding:12px 0;border-bottom:1px solid var(--border);
+  }
+  .star-history-item:last-child{border-bottom:none;}
+  .sh-icon{
+    width:36px;height:36px;border-radius:10px;
+    display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;
+  }
+  .sh-info{flex:1;}
+  .sh-info h5{font-size:12px;font-weight:700;margin-bottom:1px;}
+  .sh-info p{font-size:10px;color:var(--sub);}
+  .sh-amount{font-size:13px;font-weight:800;}
+  .sh-amount.plus{color:var(--mint);}
+  .sh-amount.minus{color:var(--acc);}
+
+  /* 아이정보 폼 */
+  .form-group{margin-bottom:16px;}
+  .form-label{font-size:12px;font-weight:700;margin-bottom:6px;display:block;color:var(--text);}
+  .form-input{
+    width:100%;padding:12px 14px;border:1.5px solid var(--border);
+    border-radius:12px;font-size:13px;background:#fff;
+    font-family:inherit;outline:none;transition:border-color .2s;
+  }
+  .form-input:focus{border-color:var(--pri);}
+  .form-select{
+    width:100%;padding:12px 14px;border:1.5px solid var(--border);
+    border-radius:12px;font-size:13px;background:#fff;
+    font-family:inherit;outline:none;appearance:none;
+    background-image:url("data:image/svg+xml,%3Csvg width='10' height='6' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%238E8BA3'/%3E%3C/svg%3E");
+    background-repeat:no-repeat;background-position:right 14px center;
+  }
+  .form-btn{
+    width:100%;padding:14px;border:none;border-radius:14px;
+    font-size:14px;font-weight:700;cursor:pointer;
+    background:var(--pri);color:#fff;font-family:inherit;
+    transition:transform .1s;
+  }
+  .form-btn:active{transform:scale(0.98);}
+
+  /* 알림 토글 */
+  .toggle-row{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:14px 0;border-bottom:1px solid var(--border);
+  }
+  .toggle-row:last-child{border-bottom:none;}
+  .toggle-label{flex:1;}
+  .toggle-label h5{font-size:13px;font-weight:700;margin-bottom:2px;}
+  .toggle-label p{font-size:10px;color:var(--sub);}
+  .toggle-switch{
+    width:46px;height:26px;border-radius:26px;
+    background:#D1D1D6;position:relative;cursor:pointer;
+    transition:background .2s;flex-shrink:0;
+  }
+  .toggle-switch.on{background:var(--pri);}
+  .toggle-switch::after{
+    content:'';position:absolute;top:3px;left:3px;
+    width:20px;height:20px;border-radius:50%;background:#fff;
+    box-shadow:0 1px 3px rgba(0,0,0,0.15);transition:transform .2s;
+  }
+  .toggle-switch.on::after{transform:translateX(20px);}
+
+  /* 차단 회원 리스트 */
+  .block-item{
+    display:flex;align-items:center;gap:12px;
+    padding:12px 0;border-bottom:1px solid var(--border);
+  }
+  .block-item:last-child{border-bottom:none;}
+  .block-avatar{
+    width:36px;height:36px;border-radius:50%;
+    display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;
+  }
+  .block-info{flex:1;}
+  .block-info h5{font-size:13px;font-weight:700;}
+  .block-info p{font-size:10px;color:var(--sub);}
+  .block-unblock{
+    font-size:11px;font-weight:600;color:var(--acc);
+    background:#FAF0EE;border:none;padding:6px 12px;
+    border-radius:8px;cursor:pointer;font-family:inherit;
+  }
+
+  /* ═══════ INFO SCREEN ═══════ */
+  .info-card{
+    margin:0 14px 12px;background:#fff;border-radius:16px;
+    border:1px solid var(--border);overflow:hidden;cursor:pointer;
+    transition:transform .15s;
+  }
+  .info-card:active{transform:scale(0.98);}
+  .info-card-img{height:120px;display:flex;align-items:center;justify-content:center;font-size:48px;}
+  .info-card-body{padding:12px 14px;}
+  .info-card-body h4{font-size:14px;font-weight:700;margin-bottom:4px;line-height:1.5;}
+  .info-card-body p{font-size:11px;color:var(--sub);line-height:1.6;}
+  .info-card-tags{display:flex;gap:4px;padding:0 14px 12px;}
+  .info-tag{font-size:9px;padding:3px 8px;border-radius:6px;background:var(--bg);color:var(--pri);font-weight:600;}
+
+  /* review card */
+  .review-card{
+    background:#fff;border-radius:12px;padding:14px;
+    border:1px solid var(--border);margin:0 14px 10px;
+  }
+  .review-head{display:flex;align-items:center;gap:8px;margin-bottom:6px;}
+  .review-avatar{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;}
+  .review-name{font-size:12px;font-weight:700;}
+  .review-meta{font-size:10px;color:var(--sub);}
+  .review-tag{margin-left:auto;font-size:9px;background:#ECF3EE;color:#5A8A62;padding:2px 6px;border-radius:6px;font-weight:600;}
+  .review-body{font-size:12px;line-height:1.7;}
+
+  /* ═══════ 월령 라운지 ═══════ */
+  .lounge-hero{background:linear-gradient(135deg,#C4A265,#D4B880);padding:20px 18px;text-align:center;color:#fff;}
+  .lounge-hero .lounge-emoji{font-size:40px;margin-bottom:6px;}
+  .lounge-hero h2{font-size:18px;font-weight:800;margin-bottom:4px;}
+  .lounge-hero p{font-size:12px;opacity:0.9;}
+  .lounge-members{display:flex;align-items:center;justify-content:center;gap:6px;margin-top:12px;}
+  .lounge-members .avatars{display:flex;}
+  .lounge-members .avatars span{width:28px;height:28px;border-radius:50%;border:2px solid rgba(255,255,255,0.6);display:flex;align-items:center;justify-content:center;font-size:14px;margin-left:-8px;background:rgba(255,255,255,0.3);}
+  .lounge-members .avatars span:first-child{margin-left:0;}
+  .lounge-members .count{font-size:11px;font-weight:700;}
+  .lounge-tabs{display:flex;background:#fff;border-bottom:1px solid var(--border);}
+  .lounge-tab{flex:1;text-align:center;padding:12px 0;font-size:12px;font-weight:700;color:var(--sub);cursor:pointer;border-bottom:2px solid transparent;transition:all .2s;}
+  .lounge-tab.active{color:var(--pri);border-bottom-color:var(--pri);}
+  .lounge-panel{display:none;padding:0;}
+  .lounge-panel.active{display:block;}
+  .chat-area{padding:14px;display:flex;flex-direction:column;gap:10px;}
+  .chat-bubble{max-width:80%;padding:10px 14px;border-radius:16px;font-size:13px;line-height:1.6;animation:fadeInUp .3s ease;}
+  .chat-bubble.other{background:#fff;border:1px solid var(--border);align-self:flex-start;border-bottom-left-radius:4px;}
+  .chat-bubble.mine{background:linear-gradient(135deg,var(--pri),#B88DA0);color:#fff;align-self:flex-end;border-bottom-right-radius:4px;}
+  .chat-name{font-size:10px;font-weight:700;color:var(--pri);margin-bottom:3px;}
+  .chat-time{font-size:9px;color:var(--sub);margin-top:3px;text-align:right;}
+  .chat-bubble.mine .chat-time{color:rgba(255,255,255,0.7);}
+  .chat-input-area{display:flex;gap:8px;padding:10px 14px;background:#fff;border-top:1px solid var(--border);position:sticky;bottom:0;}
+  .chat-input-area input{flex:1;padding:10px 14px;border:1px solid var(--border);border-radius:20px;font-size:13px;outline:none;}
+  .chat-input-area input:focus{border-color:var(--pri);}
+  .chat-input-area button{width:38px;height:38px;border-radius:50%;border:none;background:linear-gradient(135deg,var(--pri),#B88DA0);color:#fff;font-size:16px;cursor:pointer;}
+  .lounge-post{background:#fff;border-radius:14px;margin:10px 14px;padding:14px;box-shadow:0 1px 4px rgba(0,0,0,0.05);}
+  .lounge-post-head{display:flex;align-items:center;gap:8px;margin-bottom:8px;}
+  .lounge-post-avatar{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;}
+  .lounge-post-name{font-size:12px;font-weight:700;}
+  .lounge-post-meta{font-size:10px;color:var(--sub);}
+  .lounge-post-body{font-size:13px;line-height:1.7;margin-bottom:8px;}
+  .lounge-post-reactions{display:flex;gap:10px;font-size:11px;color:var(--sub);}
+
+  /* ═══════ 리뷰약속 상세 ═══════ */
+  .rp-hero{height:220px;display:flex;align-items:center;justify-content:center;font-size:72px;position:relative;}
+  .rp-hero .rp-status{position:absolute;top:14px;left:14px;padding:4px 12px;border-radius:20px;font-size:11px;font-weight:700;color:#fff;}
+  .rp-status.live{background:linear-gradient(135deg,var(--pri),#B88DA0);}
+  .rp-status.ended{background:#888;}
+  .rp-body{padding:18px;}
+  .rp-brand{font-size:12px;color:var(--sub);font-weight:600;margin-bottom:2px;}
+  .rp-name{font-size:18px;font-weight:800;color:var(--text);margin-bottom:14px;}
+  .rp-info-box{background:var(--bg);border-radius:14px;padding:14px 16px;margin-bottom:16px;}
+  .rp-info-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);}
+  .rp-info-row:last-child{border-bottom:none;}
+  .rp-info-label{font-size:12px;color:var(--sub);font-weight:600;}
+  .rp-info-value{font-size:12px;font-weight:700;color:var(--text);}
+  .rp-section-title{font-size:14px;font-weight:800;margin-bottom:10px;color:var(--text);}
+  .rp-condition{background:#fff;border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:16px;}
+  .rp-condition-item{font-size:12px;line-height:2;color:var(--text);}
+  .rp-condition-item::before{content:'✅ ';font-size:11px;}
+  .rp-btn-group{display:flex;gap:10px;margin-top:20px;}
+  .rp-btn{flex:1;padding:15px 0;border:none;border-radius:14px;font-size:14px;font-weight:800;cursor:pointer;transition:all .15s;}
+  .rp-btn:active{transform:scale(0.97);}
+  .rp-btn.product{background:linear-gradient(135deg,var(--pri),#B88DA0);color:#fff;}
+  .rp-btn.check{background:#fff;color:var(--pri);border:2px solid var(--pri);}
+  .rp-applicants{display:flex;align-items:center;gap:6px;margin-top:16px;font-size:12px;color:var(--sub);}
+  .rp-applicants .avatars{display:flex;}
+  .rp-applicants .avatars span{width:24px;height:24px;border-radius:50%;border:2px solid #fff;display:flex;align-items:center;justify-content:center;font-size:12px;margin-left:-8px;}
+  .rp-applicants .avatars span:first-child{margin-left:0;}
+
+  /* 당첨확인 모달 */
+  .rp-modal-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:999;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .25s;}
+  .rp-modal-overlay.show{opacity:1;pointer-events:auto;}
+  .rp-modal{background:#fff;border-radius:20px;padding:30px 24px;text-align:center;max-width:320px;width:85%;transform:scale(0.9);transition:transform .25s;}
+  .rp-modal-overlay.show .rp-modal{transform:scale(1);}
+  .rp-modal-emoji{font-size:56px;margin-bottom:12px;}
+  .rp-modal-title{font-size:18px;font-weight:800;margin-bottom:8px;}
+  .rp-modal-desc{font-size:13px;color:var(--sub);line-height:1.6;margin-bottom:20px;}
+  .rp-modal-btn{padding:12px 40px;border:none;border-radius:12px;background:linear-gradient(135deg,var(--pri),#B88DA0);color:#fff;font-size:14px;font-weight:700;cursor:pointer;}
+
+  /* ═══════ TOAST POPUP ═══════ */
+  .toast{
+    position:fixed;top:60px;left:50%;transform:translateX(-50%) translateY(-100px);
+    background:linear-gradient(135deg,#E8C9A0,#D4AA78);
+    border-radius:16px;padding:12px 20px;
+    display:flex;align-items:center;gap:10px;
+    box-shadow:0 8px 24px rgba(0,0,0,0.2);z-index:100;
+    transition:transform .4s cubic-bezier(.4,0,.2,1);
+    max-width:340px;
+  }
+  .toast.show{transform:translateX(-50%) translateY(0);}
+  .toast-icon{font-size:24px;}
+  .toast-text h4{font-size:12px;font-weight:800;color:#6B5030;}
+  .toast-text p{font-size:10px;color:#9E8248;}
+
+  /* ═══════ DESKTOP WRAPPER ═══════ */
+  @media(min-width:500px){
+    body{background:#2C2528;display:flex;align-items:center;justify-content:center;}
+    .app{
+      width:390px;height:844px;border-radius:36px;overflow:hidden;
+      box-shadow:0 20px 60px rgba(44,37,40,0.5),inset 0 0 0 2px rgba(255,255,255,0.08);
+      border:12px solid #2C2528;
+    }
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <!-- Status Bar -->
+  <div class="status-bar" id="statusBar"><span>3:06 PM</span><span>🔋 64%</span></div>
+
+  <!-- App Header -->
+  <div class="app-header" id="appHeader">
+    <div class="app-logo">소행성<span>.</span></div>
+    <div class="app-icons">
+      <div class="streak">🔥 7일</div>
+      🔔 🔍
+    </div>
+  </div>
+
+  <!-- Screens Container -->
+  <div class="screens">
+
+    <!-- ═══════ SCREEN: 커뮤니티 ═══════ -->
+    <div class="screen active" id="s-community">
+      <div class="seg-tabs" id="comm-tabs">
+        <div class="seg-tab active" data-comm="all">전체</div>
+        <div class="seg-tab" data-comm="popular">인기</div>
+        <div class="seg-tab" data-comm="topic">주제별</div>
+        <div class="seg-tab" data-comm="month">월령별</div>
+      </div>
+
+      <!-- ═══ 전체 탭 ═══ -->
+      <div class="comm-tab-content active" id="comm-all">
+        <!-- 새 글이 여기 맨 위에 추가됨 -->
+        <div id="new-posts-area"></div>
+
+        <div class="live-banner">
+          <div class="live-dot"></div>
+          지금 <strong>142명</strong>의 소행성 엄마가 함께하고 있어요 👀
+        </div>
+        <div class="month-match">
+          <div class="mm-icon">👶</div>
+          <div class="mm-text">
+            <h4>11개월 아기 엄마 23명이 지금 활동 중!</h4>
+            <p>같은 월령 엄마들과 이야기 나눠보세요</p>
+          </div>
+          <div class="mm-btn" onclick="goSub('s-month-lounge')">만나기 →</div>
+        </div>
+        <div class="daily-q">
+          <div class="dq-top">
+            <span style="font-size:18px;">🎲</span>
+            <span class="dq-badge">오늘의 질문</span>
+            <span class="dq-new">NEW</span>
+          </div>
+          <div class="dq-question">아기 첫 신발,<br>언제 사셨나요? 👟</div>
+          <div class="dq-stats">
+            <span>💬 87개 답변</span>
+            <span>🕐 오늘 자정까지</span>
+            <span class="dq-reply">답변하기</span>
+          </div>
+        </div>
+        <div class="post">
+          <div class="post-head"><div class="p-avatar g1">🐥</div><div><div class="p-name">하은맘</div><div class="p-badges"><span class="p-tier t1">⭐ 별맘</span> <span class="p-meta">11개월 · 2시간 전</span></div></div><div class="p-more">⋯</div></div>
+          <div class="p-body">아토팜 로션 써봤는데 진짜 좋아요 🥹<br>발림성도 좋고 무향이라 아기한테 안심!<br><span class="tag">#아기로션 #육아템추천</span></div>
+          <div class="reactions"><button class="react-btn on" onclick="toggleReact(this)"><div class="ri">😢</div><div class="rc">12</div><div class="rl">공감</div></button><button class="react-btn" onclick="toggleReact(this)"><div class="ri">😂</div><div class="rc">5</div><div class="rl">ㅋㅋ</div></button><button class="react-btn on" onclick="toggleReact(this)"><div class="ri">💡</div><div class="rc">18</div><div class="rl">도움돼요</div></button><button class="react-btn" onclick="toggleReact(this)"><div class="ri">💪</div><div class="rc">3</div><div class="rl">응원해요</div></button><button class="react-btn" onclick="toggleReact(this)"><div class="ri">💬</div><div class="rc">8</div><div class="rl">댓글</div></button><button class="react-btn"><div class="ri">🔗</div><div class="rc"></div><div class="rl">공유</div></button></div>
+        </div>
+        <div class="empathy">
+          <div class="emp-top"><span style="font-size:16px;">🙋‍♀️</span><span class="emp-badge">이거 나만 그래?</span><span class="emp-hot">HOT</span></div>
+          <div class="emp-q">밤중수유 끊었는데<br>죄책감 드는 거 나만 그래? 😥</div>
+          <div class="emp-opts">
+            <div class="emp-opt sel" onclick="pickEmpathy(this,78)"><div class="emp-opt-emoji">🙋‍♀️</div><div class="emp-opt-text">나도!!</div><div class="emp-opt-pct">78%</div><div class="emp-opt-bar" style="transform:scaleX(0.78);"></div></div>
+            <div class="emp-opt" onclick="pickEmpathy(this,22)"><div class="emp-opt-emoji">🤔</div><div class="emp-opt-text">나만 아닌 듯</div><div class="emp-opt-pct">22%</div><div class="emp-opt-bar" style="transform:scaleX(0.22);"></div></div>
+          </div>
+          <div class="emp-stats"><span>👩‍👧‍👦 234명 참여</span><span>💬 댓글 56개</span></div>
+        </div>
+        <div class="post">
+          <div class="post-head"><div class="p-avatar g2">👶</div><div><div class="p-name">서연맘</div><div class="p-badges"><span class="p-tier t2">🌟 별똥별맘</span> <span class="p-meta">6개월 · 4시간 전</span></div></div><div class="p-more">⋯</div></div>
+          <div class="p-body">6개월 이유식 시작했는데 쌀미음부터 하고 있어요 🍚<br>다들 이유식 언제 시작하셨나요?<br><span class="tag">#이유식시작 #6개월아기</span></div>
+          <div class="p-image" style="background:linear-gradient(135deg,#FAF5ED,#FBF9F4);">🍚</div>
+          <div class="reactions"><button class="react-btn" onclick="toggleReact(this)"><div class="ri">😢</div><div class="rc">8</div><div class="rl">공감</div></button><button class="react-btn" onclick="toggleReact(this)"><div class="ri">😂</div><div class="rc">2</div><div class="rl">ㅋㅋ</div></button><button class="react-btn on" onclick="toggleReact(this)"><div class="ri">💡</div><div class="rc">24</div><div class="rl">도움돼요</div></button><button class="react-btn" onclick="toggleReact(this)"><div class="ri">💪</div><div class="rc">11</div><div class="rl">응원해요</div></button><button class="react-btn" onclick="toggleReact(this)"><div class="ri">💬</div><div class="rc">15</div><div class="rl">댓글</div></button><button class="react-btn"><div class="ri">🔗</div><div class="rc"></div><div class="rl">공유</div></button></div>
+        </div>
+        <div class="hot-hl"><div class="hot-fire">🔥</div><div class="hot-text"><h4>💬 지금 댓글 폭발 중!</h4><p>"배앓이가 너무 심해요 😭" — 댓글 22개</p></div><div class="hot-go">보러가기 →</div></div>
+        <div class="post">
+          <div class="post-head"><div class="p-avatar g4">🌸</div><div><div class="p-name">지우맘</div><div class="p-badges"><span class="p-tier t1">🌱 새싹맘</span> <span class="p-meta">3개월 · 5시간 전</span></div></div><div class="p-more">⋯</div></div>
+          <div class="p-body">배앓이가 너무 심해요 😭<br>가스 찬 것 같은데 어떻게 해주시나요?<br><span class="tag">#배앓이 #3개월아기 #도와주세요</span></div>
+          <div class="reactions"><button class="react-btn on" onclick="toggleReact(this)"><div class="ri">😢</div><div class="rc">42</div><div class="rl">공감</div></button><button class="react-btn" onclick="toggleReact(this)"><div class="ri">😂</div><div class="rc">1</div><div class="rl">ㅋㅋ</div></button><button class="react-btn" onclick="toggleReact(this)"><div class="ri">💡</div><div class="rc">9</div><div class="rl">도움돼요</div></button><button class="react-btn on" onclick="toggleReact(this)"><div class="ri">💪</div><div class="rc">28</div><div class="rl">응원해요</div></button><button class="react-btn" onclick="toggleReact(this)"><div class="ri">💬</div><div class="rc">22</div><div class="rl">댓글</div></button><button class="react-btn"><div class="ri">🔗</div><div class="rc"></div><div class="rl">공유</div></button></div>
+        </div>
+        <div class="post">
+          <div class="post-head"><div class="p-avatar g3">🦊</div><div><div class="p-name">민준맘</div><div class="p-badges"><span class="p-tier t3">💎 인증단</span> <span class="p-meta">24개월 · 어제</span></div></div><div class="p-more">⋯</div></div>
+          <div class="p-body">두돌 지나니까 말이 갑자기 트이네요 🤩<br>어제 처음으로 "엄마 사랑해" 했는데 울 뻔 ㅠㅠ<br><span class="tag">#두돌아기 #언어발달 #육아일상</span></div>
+          <div class="reactions"><button class="react-btn on" onclick="toggleReact(this)"><div class="ri">😢</div><div class="rc">31</div><div class="rl">공감</div></button><button class="react-btn on" onclick="toggleReact(this)"><div class="ri">😂</div><div class="rc">19</div><div class="rl">ㅋㅋ</div></button><button class="react-btn" onclick="toggleReact(this)"><div class="ri">💡</div><div class="rc">7</div><div class="rl">도움돼요</div></button><button class="react-btn" onclick="toggleReact(this)"><div class="ri">💪</div><div class="rc">15</div><div class="rl">응원해요</div></button><button class="react-btn" onclick="toggleReact(this)"><div class="ri">💬</div><div class="rc">34</div><div class="rl">댓글</div></button><button class="react-btn"><div class="ri">🔗</div><div class="rc"></div><div class="rl">공유</div></button></div>
+        </div>
+        <div class="post">
+          <div class="post-head"><div class="p-avatar g1">🐰</div><div><div class="p-name">수아맘</div><div class="p-badges"><span class="p-tier t1">⭐ 별맘</span> <span class="p-meta">14개월 · 어제</span></div></div><div class="p-more">⋯</div></div>
+          <div class="p-body">놀이방 매트 추천 부탁드려요!<br>폴더매트 이음새 사이로 과자가 다 들어가요 😅<br><span class="tag">#놀이매트 #육아템 #추천부탁</span></div>
+          <div class="reactions"><button class="react-btn" onclick="toggleReact(this)"><div class="ri">😢</div><div class="rc">3</div><div class="rl">공감</div></button><button class="react-btn on" onclick="toggleReact(this)"><div class="ri">😂</div><div class="rc">7</div><div class="rl">ㅋㅋ</div></button><button class="react-btn" onclick="toggleReact(this)"><div class="ri">💡</div><div class="rc">14</div><div class="rl">도움돼요</div></button><button class="react-btn" onclick="toggleReact(this)"><div class="ri">💪</div><div class="rc">2</div><div class="rl">응원해요</div></button><button class="react-btn" onclick="toggleReact(this)"><div class="ri">💬</div><div class="rc">19</div><div class="rl">댓글</div></button><button class="react-btn"><div class="ri">🔗</div><div class="rc"></div><div class="rl">공유</div></button></div>
+        </div>
+      </div>
+
+      <!-- ═══ 인기 탭 ═══ -->
+      <div class="comm-tab-content" id="comm-popular">
+        <div style="padding:12px 14px 6px;font-size:11px;color:var(--sub);">🔥 최근 24시간 인기글</div>
+        <div class="post">
+          <div class="post-head"><div class="p-avatar g4">🌸</div><div><div class="p-name">지우맘 <span class="popular-badge">🔥 인기</span></div><div class="p-badges"><span class="p-tier t1">🌱 새싹맘</span> <span class="p-meta">3개월 · 5시간 전</span></div></div><div class="p-more">⋯</div></div>
+          <div class="p-body">배앓이가 너무 심해요 😭<br>가스 찬 것 같은데 어떻게 해주시나요?<br><span class="tag">#배앓이 #3개월아기</span></div>
+          <div class="reactions"><button class="react-btn on" onclick="toggleReact(this)"><div class="ri">😢</div><div class="rc">42</div><div class="rl">공감</div></button><button class="react-btn" onclick="toggleReact(this)"><div class="ri">😂</div><div class="rc">1</div><div class="rl">ㅋㅋ</div></button><button class="react-btn" onclick="toggleReact(this)"><div class="ri">💡</div><div class="rc">9</div><div class="rl">도움돼요</div></button><button class="react-btn on" onclick="toggleReact(this)"><div class="ri">💪</div><div class="rc">28</div><div class="rl">응원해요</div></button><button class="react-btn" onclick="toggleReact(this)"><div class="ri">💬</div><div class="rc">22</div><div class="rl">댓글</div></button><button class="react-btn"><div class="ri">🔗</div><div class="rc"></div><div class="rl">공유</div></button></div>
+        </div>
+        <div class="post">
+          <div class="post-head"><div class="p-avatar g3">🦊</div><div><div class="p-name">민준맘 <span class="popular-badge">🔥 인기</span></div><div class="p-badges"><span class="p-tier t3">💎 인증단</span> <span class="p-meta">24개월 · 어제</span></div></div><div class="p-more">⋯</div></div>
+          <div class="p-body">두돌 지나니까 말이 갑자기 트이네요 🤩<br>어제 처음으로 "엄마 사랑해" 했는데 울 뻔 ㅠㅠ<br><span class="tag">#두돌아기 #언어발달</span></div>
+          <div class="reactions"><button class="react-btn on" onclick="toggleReact(this)"><div class="ri">😢</div><div class="rc">31</div><div class="rl">공감</div></button><button class="react-btn on" onclick="toggleReact(this)"><div class="ri">😂</div><div class="rc">19</div><div class="rl">ㅋㅋ</div></button><button class="react-btn" onclick="toggleReact(this)"><div class="ri">💡</div><div class="rc">7</div><div class="rl">도움돼요</div></button><button class="react-btn" onclick="toggleReact(this)"><div class="ri">💪</div><div class="rc">15</div><div class="rl">응원해요</div></button><button class="react-btn" onclick="toggleReact(this)"><div class="ri">💬</div><div class="rc">34</div><div class="rl">댓글</div></button><button class="react-btn"><div class="ri">🔗</div><div class="rc"></div><div class="rl">공유</div></button></div>
+        </div>
+        <div class="post">
+          <div class="post-head"><div class="p-avatar g2">👶</div><div><div class="p-name">서연맘 <span class="popular-badge">🔥 인기</span></div><div class="p-badges"><span class="p-tier t2">🌟 별똥별맘</span> <span class="p-meta">6개월 · 4시간 전</span></div></div><div class="p-more">⋯</div></div>
+          <div class="p-body">6개월 이유식 시작했는데 쌀미음부터 하고 있어요 🍚<br>다들 이유식 언제 시작하셨나요?<br><span class="tag">#이유식시작 #6개월아기</span></div>
+          <div class="reactions"><button class="react-btn" onclick="toggleReact(this)"><div class="ri">😢</div><div class="rc">8</div><div class="rl">공감</div></button><button class="react-btn" onclick="toggleReact(this)"><div class="ri">😂</div><div class="rc">2</div><div class="rl">ㅋㅋ</div></button><button class="react-btn on" onclick="toggleReact(this)"><div class="ri">💡</div><div class="rc">24</div><div class="rl">도움돼요</div></button><button class="react-btn" onclick="toggleReact(this)"><div class="ri">💪</div><div class="rc">11</div><div class="rl">응원해요</div></button><button class="react-btn" onclick="toggleReact(this)"><div class="ri">💬</div><div class="rc">15</div><div class="rl">댓글</div></button><button class="react-btn"><div class="ri">🔗</div><div class="rc"></div><div class="rl">공유</div></button></div>
+        </div>
+      </div>
+
+      <!-- ═══ 주제별 탭 ═══ -->
+      <div class="comm-tab-content" id="comm-topic">
+        <div class="topic-grid">
+          <div class="topic-card"><div class="tc-icon">🍼</div><div class="tc-name">수유/이유식</div><div class="tc-count">글 342개</div></div>
+          <div class="topic-card"><div class="tc-icon">😴</div><div class="tc-name">수면/밤잠</div><div class="tc-count">글 256개</div></div>
+          <div class="topic-card"><div class="tc-icon">🧴</div><div class="tc-name">육아템 추천</div><div class="tc-count">글 489개</div></div>
+          <div class="topic-card"><div class="tc-icon">📊</div><div class="tc-name">발달/성장</div><div class="tc-count">글 198개</div></div>
+          <div class="topic-card"><div class="tc-icon">🏥</div><div class="tc-name">건강/병원</div><div class="tc-count">글 167개</div></div>
+          <div class="topic-card"><div class="tc-icon">🎮</div><div class="tc-name">놀이/교육</div><div class="tc-count">글 231개</div></div>
+          <div class="topic-card"><div class="tc-icon">💪</div><div class="tc-name">산후조리</div><div class="tc-count">글 145개</div></div>
+          <div class="topic-card"><div class="tc-icon">💬</div><div class="tc-name">자유수다</div><div class="tc-count">글 567개</div></div>
+        </div>
+      </div>
+
+      <!-- ═══ 월령별 탭 ═══ -->
+      <div class="comm-tab-content" id="comm-month">
+        <div style="padding:12px 14px 4px;font-size:11px;color:var(--sub);">💡 같은 월령 엄마들과 이야기해요</div>
+        <div class="month-grid">
+          <div class="month-card"><div class="mc-emoji">🤱</div><div class="mc-info"><h5>신생아 (0~2개월)</h5><p>신생아 돌보기, 모유수유 팁</p></div><div class="mc-count">89명 활동중</div></div>
+          <div class="month-card"><div class="mc-emoji">👶</div><div class="mc-info"><h5>3~6개월</h5><p>뒤집기, 이유식 시작, 수면교육</p></div><div class="mc-count">124명 활동중</div></div>
+          <div class="month-card" style="border-color:var(--pri);background:#FAFAFF;"><div class="mc-emoji">🐥</div><div class="mc-info"><h5>7~12개월 <span style="font-size:9px;color:var(--pri);font-weight:700;">← 내 아기</span></h5><p>이앓이, 후기이유식, 첫 걸음</p></div><div class="mc-count" style="color:var(--acc);">156명 활동중</div></div>
+          <div class="month-card"><div class="mc-emoji">🧒</div><div class="mc-info"><h5>13~24개월</h5><p>말트기, 걷기, 훈육 시작</p></div><div class="mc-count">98명 활동중</div></div>
+          <div class="month-card"><div class="mc-emoji">👧</div><div class="mc-info"><h5>25~36개월</h5><p>배변훈련, 어린이집, 언어폭발</p></div><div class="mc-count">73명 활동중</div></div>
+          <div class="month-card"><div class="mc-emoji">🎒</div><div class="mc-info"><h5>37개월 이상</h5><p>유치원, 사회성, 교육</p></div><div class="mc-count">45명 활동중</div></div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ═══════ SCREEN: 육아정보 ═══════ -->
+    <div class="screen hidden-right" id="s-info">
+      <div class="seg-tabs" id="info-tabs">
+        <div class="seg-tab active" data-info="info-all">전체</div>
+        <div class="seg-tab" data-info="info-dev">발달</div>
+        <div class="seg-tab" data-info="info-health">건강</div>
+        <div class="seg-tab" data-info="info-nutrition">영양</div>
+      </div>
+
+      <!-- 전체 -->
+      <div class="comm-tab-content active" id="info-all">
+        <div class="info-card"><div class="info-card-img" style="background:linear-gradient(135deg,#E3F2FD,#BBDEFB);">📊</div><div class="info-card-body"><h4>11개월 아기 발달 체크리스트</h4><p>대근육·소근육·언어·사회성 발달 단계별 확인</p></div><div class="info-card-tags"><span class="info-tag">11개월</span><span class="info-tag">발달</span></div></div>
+        <div class="info-card"><div class="info-card-img" style="background:linear-gradient(135deg,#FFF3E0,#E8D8C2);">🍚</div><div class="info-card-body"><h4>이유식 시기별 완벽 가이드</h4><p>초기·중기·후기·완료기 단계별 식단과 주의사항</p></div><div class="info-card-tags"><span class="info-tag">이유식</span><span class="info-tag">영양</span></div></div>
+        <div class="info-card"><div class="info-card-img" style="background:linear-gradient(135deg,#E8F5E9,#C8D8C6);">💉</div><div class="info-card-body"><h4>예방접종 스케줄 총정리</h4><p>BCG부터 인플루엔자까지 시기별 접종 안내</p></div><div class="info-card-tags"><span class="info-tag">예방접종</span><span class="info-tag">건강</span></div></div>
+        <div class="info-card"><div class="info-card-img" style="background:linear-gradient(135deg,#FCE4EC,#F8BBD0);">😴</div><div class="info-card-body"><h4>수면교육, 언제 어떻게 시작할까?</h4><p>퍼버법·안아재우기·스스로잠 비교 분석</p></div><div class="info-card-tags"><span class="info-tag">수면</span><span class="info-tag">생활</span></div></div>
+      </div>
+
+      <!-- 발달 -->
+      <div class="comm-tab-content" id="info-dev">
+        <div class="info-card"><div class="info-card-img" style="background:linear-gradient(135deg,#E3F2FD,#BBDEFB);">📊</div><div class="info-card-body"><h4>11개월 아기 발달 체크리스트</h4><p>대근육·소근육·언어·사회성 발달 단계별 확인</p></div><div class="info-card-tags"><span class="info-tag">11개월</span><span class="info-tag">발달</span></div></div>
+        <div class="info-card"><div class="info-card-img" style="background:linear-gradient(135deg,#FAF5ED,#FBF9F4);">🧒</div><div class="info-card-body"><h4>월령별 대근육 발달 이정표</h4><p>목 가누기 → 뒤집기 → 앉기 → 기기 → 걷기</p></div><div class="info-card-tags"><span class="info-tag">대근육</span><span class="info-tag">발달</span></div></div>
+        <div class="info-card"><div class="info-card-img" style="background:linear-gradient(135deg,#F3E5F5,#C9A5B0);">🗣️</div><div class="info-card-body"><h4>아기 언어 발달 촉진법</h4><p>옹알이부터 첫 단어까지, 월령별 언어 자극 방법</p></div><div class="info-card-tags"><span class="info-tag">언어발달</span><span class="info-tag">12개월</span></div></div>
+        <div class="info-card"><div class="info-card-img" style="background:linear-gradient(135deg,#E8EAF6,#9FA8DA);">🧩</div><div class="info-card-body"><h4>소근육 발달을 위한 놀이 10가지</h4><p>손가락 힘부터 젓가락 잡기까지 단계별 놀이법</p></div><div class="info-card-tags"><span class="info-tag">소근육</span><span class="info-tag">놀이</span></div></div>
+      </div>
+
+      <!-- 건강 -->
+      <div class="comm-tab-content" id="info-health">
+        <div class="info-card"><div class="info-card-img" style="background:linear-gradient(135deg,#E8F5E9,#C8D8C6);">💉</div><div class="info-card-body"><h4>예방접종 스케줄 총정리</h4><p>BCG부터 인플루엔자까지 시기별 접종 안내</p></div><div class="info-card-tags"><span class="info-tag">예방접종</span><span class="info-tag">필수</span></div></div>
+        <div class="info-card"><div class="info-card-img" style="background:linear-gradient(135deg,#FAF0EE,#FFCDD2);">🤒</div><div class="info-card-body"><h4>아기 열 날 때 응급 대처법</h4><p>체온별 대처법, 해열제 복용 가이드, 병원 가야할 때</p></div><div class="info-card-tags"><span class="info-tag">응급</span><span class="info-tag">발열</span></div></div>
+        <div class="info-card"><div class="info-card-img" style="background:linear-gradient(135deg,#E3F2FD,#BBDEFB);">🏥</div><div class="info-card-body"><h4>영유아 건강검진 시기와 항목</h4><p>무료 건강검진 일정, 검사 항목, 준비물 안내</p></div><div class="info-card-tags"><span class="info-tag">건강검진</span><span class="info-tag">무료</span></div></div>
+        <div class="info-card"><div class="info-card-img" style="background:linear-gradient(135deg,#FCE4EC,#F8BBD0);">🦷</div><div class="info-card-body"><h4>이앓이 증상과 대처법</h4><p>잇몸 부음, 침 많이 흘림, 보채기 — 어떻게 도와줄까?</p></div><div class="info-card-tags"><span class="info-tag">이앓이</span><span class="info-tag">7~12개월</span></div></div>
+      </div>
+
+      <!-- 영양 -->
+      <div class="comm-tab-content" id="info-nutrition">
+        <div class="info-card"><div class="info-card-img" style="background:linear-gradient(135deg,#FFF3E0,#E8D8C2);">🍚</div><div class="info-card-body"><h4>이유식 시기별 완벽 가이드</h4><p>초기·중기·후기·완료기 단계별 식단과 주의사항</p></div><div class="info-card-tags"><span class="info-tag">이유식</span><span class="info-tag">기초</span></div></div>
+        <div class="info-card"><div class="info-card-img" style="background:linear-gradient(135deg,#E8F5E9,#C8D8C6);">🥦</div><div class="info-card-body"><h4>알레르기 유발 식품 안전 가이드</h4><p>계란, 우유, 밀, 견과류 — 언제 어떻게 시작할까?</p></div><div class="info-card-tags"><span class="info-tag">알레르기</span><span class="info-tag">이유식</span></div></div>
+        <div class="info-card"><div class="info-card-img" style="background:linear-gradient(135deg,#FAF5ED,#FBF9F4);">🍼</div><div class="info-card-body"><h4>분유에서 우유로 전환 가이드</h4><p>12개월 전후 우유 전환 타이밍과 주의사항</p></div><div class="info-card-tags"><span class="info-tag">우유전환</span><span class="info-tag">12개월</span></div></div>
+        <div class="info-card"><div class="info-card-img" style="background:linear-gradient(135deg,#E3F2FD,#BBDEFB);">🥄</div><div class="info-card-body"><h4>아기 철분 부족 신호와 보충법</h4><p>6개월 이후 필수! 철분 많은 이유식 레시피</p></div><div class="info-card-tags"><span class="info-tag">철분</span><span class="info-tag">영양</span></div></div>
+      </div>
+    </div>
+
+    <!-- ═══════ SCREEN: 스탠다드 ═══════ -->
+    <div class="screen hidden-right" id="s-standard">
+      <div class="std-screen-header">
+        <h2>📐 스탠다드</h2>
+        <p>엄마들이 직접 기준을 세우고,<br>기준에 맞는 인정템을 찾아요</p>
+        <div class="std-stat-row">
+          <div class="std-stat">🗳️ 진행 중 투표 <strong style="margin:0 0 0 4px;display:inline;">12</strong></div>
+          <div class="std-stat">🏅 인정템 <strong style="margin:0 0 0 4px;display:inline;">48</strong>개</div>
+        </div>
+      </div>
+
+      <div class="seg-tabs" id="std-screen-tabs">
+        <div class="seg-tab active">투표 진행중</div>
+        <div class="seg-tab">인정템 모아보기</div>
+      </div>
+
+      <!-- 투표 진행중 탭 -->
+      <div id="std-screen-vote">
+        <!-- 카테고리 1: 아기 로션 -->
+        <div class="vote-category" onclick="goSub('s-vote-detail')">
+          <div class="vc-top">
+            <div class="vc-icon" style="background:linear-gradient(135deg,#FFF3E0,#E8D8C2);">🧴</div>
+            <div class="vc-info">
+              <h4>아기 로션 기준 세우기</h4>
+              <p>보습력 vs 성분 vs 가성비 — 뭐가 가장 중요해요?</p>
+            </div>
+            <span class="vc-status-badge hot">🔥 HOT</span>
+          </div>
+          <div class="vc-bar-row">
+            <div class="vc-bar-track"><div class="vc-bar-fill" style="width:78%;"></div></div>
+            <div class="vc-bar-label">286명 참여</div>
+          </div>
+          <div class="vc-bottom">
+            <div class="vc-stat"><strong>4</strong>기준 항목</div>
+            <div class="vc-stat"><strong>6</strong>인정템</div>
+            <div class="vc-stat"><strong>3일</strong>남음</div>
+          </div>
+        </div>
+
+        <!-- 카테고리 2: 아기 물티슈 -->
+        <div class="vote-category" onclick="goSub('s-vote-detail')">
+          <div class="vc-top">
+            <div class="vc-icon" style="background:linear-gradient(135deg,#E8F5E9,#C8D8C6);">🧻</div>
+            <div class="vc-info">
+              <h4>아기 물티슈 기준 세우기</h4>
+              <p>성분 안전성이 82%로 1위! 두께/내구성은?</p>
+            </div>
+            <span class="vc-status-badge done">✓ 확정</span>
+          </div>
+          <div class="vc-bar-row">
+            <div class="vc-bar-track"><div class="vc-bar-fill" style="width:100%;"></div></div>
+            <div class="vc-bar-label">412명 참여</div>
+          </div>
+          <div class="vc-bottom">
+            <div class="vc-stat"><strong>5</strong>기준 항목</div>
+            <div class="vc-stat"><strong>8</strong>인정템</div>
+            <div class="vc-stat"><strong>확정</strong>완료</div>
+          </div>
+        </div>
+
+        <!-- 카테고리 3: 기저귀 -->
+        <div class="vote-category" onclick="goSub('s-vote-detail')">
+          <div class="vc-top">
+            <div class="vc-icon" style="background:linear-gradient(135deg,#E3F2FD,#BBDEFB);">👶</div>
+            <div class="vc-info">
+              <h4>기저귀 기준 세우기</h4>
+              <p>흡수력 vs 피부자극 vs 가격 — 투표 중!</p>
+            </div>
+            <span class="vc-status-badge active">🟢 진행중</span>
+          </div>
+          <div class="vc-bar-row">
+            <div class="vc-bar-track"><div class="vc-bar-fill" style="width:45%;"></div></div>
+            <div class="vc-bar-label">189명 참여</div>
+          </div>
+          <div class="vc-bottom">
+            <div class="vc-stat"><strong>5</strong>기준 항목</div>
+            <div class="vc-stat"><strong>—</strong>인정템</div>
+            <div class="vc-stat"><strong>7일</strong>남음</div>
+          </div>
+        </div>
+
+        <!-- 카테고리 4: 이유식 도구 -->
+        <div class="vote-category" onclick="goSub('s-vote-detail')">
+          <div class="vc-top">
+            <div class="vc-icon" style="background:linear-gradient(135deg,#FCE4EC,#F8BBD0);">🍚</div>
+            <div class="vc-info">
+              <h4>이유식 도구 기준 세우기</h4>
+              <p>블렌더? 찜기? 올인원? 어떤 게 최고예요?</p>
+            </div>
+            <span class="vc-status-badge active">🟢 진행중</span>
+          </div>
+          <div class="vc-bar-row">
+            <div class="vc-bar-track"><div class="vc-bar-fill" style="width:32%;"></div></div>
+            <div class="vc-bar-label">134명 참여</div>
+          </div>
+          <div class="vc-bottom">
+            <div class="vc-stat"><strong>4</strong>기준 항목</div>
+            <div class="vc-stat"><strong>—</strong>인정템</div>
+            <div class="vc-stat"><strong>12일</strong>남음</div>
+          </div>
+        </div>
+
+        <!-- 카테고리 5: 유모차 -->
+        <div class="vote-category" onclick="goSub('s-vote-detail')">
+          <div class="vc-top">
+            <div class="vc-icon" style="background:linear-gradient(135deg,#FAF5ED,#FBF9F4);">🚼</div>
+            <div class="vc-info">
+              <h4>유모차 기준 세우기</h4>
+              <p>무게 vs 접이편의 vs 서스펜션 — 어떤 기준?</p>
+            </div>
+            <span class="vc-status-badge active">🟢 진행중</span>
+          </div>
+          <div class="vc-bar-row">
+            <div class="vc-bar-track"><div class="vc-bar-fill" style="width:22%;"></div></div>
+            <div class="vc-bar-label">91명 참여</div>
+          </div>
+          <div class="vc-bottom">
+            <div class="vc-stat"><strong>6</strong>기준 항목</div>
+            <div class="vc-stat"><strong>—</strong>인정템</div>
+            <div class="vc-stat"><strong>14일</strong>남음</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 인정템 모아보기 탭 -->
+      <div id="std-screen-approved" style="display:none;">
+        <!-- 아기 로션 인정템 -->
+        <div class="approved-section">
+          <div class="sec-title">🧴 아기 로션 인정템 <span style="font-size:11px;color:var(--sub);font-weight:500;">286명이 세운 기준</span></div>
+          <div class="approved-scroll">
+            <div class="approved-card" onclick="goSub('s-product-detail')">
+              <div class="approved-card-img" style="background:linear-gradient(135deg,#FFF3E0,#E8D8C2);">🧴<div class="a-badge">🏅 인정템</div></div>
+              <div class="approved-card-body">
+                <div class="a-criteria">✓ 기준 4/4 충족</div>
+                <h5>아토팜 MLE 크림 로션 300ml</h5>
+                <div class="a-price">18,900원</div>
+              </div>
+            </div>
+            <div class="approved-card" onclick="goSub('s-product-detail')">
+              <div class="approved-card-img" style="background:linear-gradient(135deg,#E8F5E9,#C8D8C6);">🧴<div class="a-badge">🏅 인정템</div></div>
+              <div class="approved-card-body">
+                <div class="a-criteria">✓ 기준 4/4 충족</div>
+                <h5>세타필 베이비 데일리 로션</h5>
+                <div class="a-price">15,200원</div>
+              </div>
+            </div>
+            <div class="approved-card" onclick="goSub('s-product-detail')">
+              <div class="approved-card-img" style="background:linear-gradient(135deg,#F3EBE9,#EDE3E0);">🧴<div class="a-badge">🏅 인정템</div></div>
+              <div class="approved-card-body">
+                <div class="a-criteria">✓ 기준 3/4 충족</div>
+                <h5>라놀린 내츄럴 베이비 로션</h5>
+                <div class="a-price">22,500원</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 아기 물티슈 인정템 -->
+        <div class="approved-section">
+          <div class="sec-title">🧻 아기 물티슈 인정템 <span style="font-size:11px;color:var(--sub);font-weight:500;">412명이 세운 기준</span></div>
+          <div class="approved-scroll">
+            <div class="approved-card" onclick="goSub('s-product-detail')">
+              <div class="approved-card-img" style="background:linear-gradient(135deg,#E3F2FD,#BBDEFB);">🧻<div class="a-badge">🏅 인정템</div></div>
+              <div class="approved-card-body">
+                <div class="a-criteria">✓ 기준 5/5 충족</div>
+                <h5>마더케이 순수물 아기물티슈</h5>
+                <div class="a-price">9,900원</div>
+              </div>
+            </div>
+            <div class="approved-card" onclick="goSub('s-product-detail')">
+              <div class="approved-card-img" style="background:linear-gradient(135deg,#FAF5ED,#FBF9F4);">🧻<div class="a-badge">🏅 인정템</div></div>
+              <div class="approved-card-body">
+                <div class="a-criteria">✓ 기준 5/5 충족</div>
+                <h5>베베숲 시그니처 엠보</h5>
+                <div class="a-price">11,200원</div>
+              </div>
+            </div>
+            <div class="approved-card" onclick="goSub('s-product-detail')">
+              <div class="approved-card-img" style="background:linear-gradient(135deg,#FCE4EC,#F8BBD0);">🧻<div class="a-badge">🏅 인정템</div></div>
+              <div class="approved-card-body">
+                <div class="a-criteria">✓ 기준 4/5 충족</div>
+                <h5>궁중비책 순수 물티슈</h5>
+                <div class="a-price">8,500원</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 기저귀 - 아직 투표중 -->
+        <div class="approved-section" style="opacity:0.5;">
+          <div class="sec-title">👶 기저귀 인정템 <span style="font-size:11px;color:var(--warm);font-weight:600;">🗳️ 투표 진행중</span></div>
+          <div style="padding:20px 16px;text-align:center;">
+            <div style="font-size:36px;margin-bottom:8px;">🗳️</div>
+            <div style="font-size:12px;color:var(--sub);line-height:1.7;">아직 기준이 확정되지 않았어요<br><strong style="color:var(--pri);">투표에 참여</strong>해서 기준을 세워주세요!</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════ SCREEN: 별똥별마켓 ═══════ -->
+    <div class="screen hidden-right" id="s-market">
+      <div class="std-header">
+        <div class="std-logo">⭐</div>
+        <div class="std-header-text">
+          <h2>별똥별마켓</h2>
+          <div class="std-sub">소행성 별똥별마켓</div>
+        </div>
+        <div class="std-points-pill">⭐ 1,250조각</div>
+      </div>
+
+      <div class="market-seg">
+        <div class="market-seg-tab active">리뷰약속</div>
+        <div class="market-seg-tab">별똥별 응모</div>
+        <div class="market-seg-tab">별똥별 교환</div>
+        <div class="market-seg-tab">웰컴존</div>
+      </div>
+
+      <!-- 리뷰약속 탭 -->
+      <div id="std-tab-review">
+        <div class="std-card" onclick="openReviewPromise({emoji:'📏',bg:'linear-gradient(135deg,#FFF3E0,#FFECB3)',brand:'베이비그로우',name:'스마트 키재기 — 우리아이 성장측정',period:'02/13 ~ 02/19',slots:'총 5명',stars:'10조각',dest:'네이버 블로그',applicants:'102명이 응모했어요',status:'live',info:'베이비그로우 스마트 키재기\n초음파 센서로 정밀 측정 · 앱 연동\n자동 성장 기록 · 공유 기능\n정가 39,000원 상당',conditions:['제품 수령 후 5일 이내 블로그 리뷰 작성','네이버 블로그에 실사용 후기 등록','사진 5장 이상 포함 (개봉기 + 사용 모습)','최소 300자 이상 작성']})">
+          <div class="std-card-img" style="background:linear-gradient(135deg,#FFF3E0,#FFECB3);">
+            📏
+            <div class="std-card-timer">⏰ 5d 12h 30m</div>
+            <div class="std-card-status live">응모중</div>
+          </div>
+          <div class="std-card-body">
+            <div class="std-card-date-row">02/13 ~ 02/19</div>
+            <div class="std-card-brand">베이비그로우</div>
+            <div class="std-card-name">스마트 키재기 — 우리아이 성장측정</div>
+            <div class="std-card-meta">
+              <span class="chip star">⭐ 10조각</span>
+              <span class="chip people">총 5명 선발</span>
+              <span class="chip count">102명 응모 중</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="std-card" onclick="openReviewPromise({emoji:'🧴',bg:'linear-gradient(135deg,#E3F2FD,#BBDEFB)',brand:'아토팜',name:'MLE 크림 로션 300ml 체험 리뷰',period:'03/05 ~ 03/25',slots:'총 10명',stars:'15조각',dest:'쿠팡 리뷰',applicants:'87명이 응모했어요',status:'live',info:'아토팜 MLE 크림 로션 300ml\n피부과 테스트 완료 · EWG 그린등급\n무향 · 보습 지속 12시간\n정가 24,000원 상당',conditions:['제품 수령 후 7일 이내 리뷰 작성','쿠팡에 솔직한 사용 후기 등록','사진 3장 이상 포함 (실사용 사진)','최소 100자 이상 작성']})">
+          <div class="std-card-img" style="background:linear-gradient(135deg,#E3F2FD,#BBDEFB);">
+            🧴
+            <div class="std-card-timer">⏰ 3d 08h 15m</div>
+            <div class="std-card-status live">응모중</div>
+          </div>
+          <div class="std-card-body">
+            <div class="std-card-date-row">03/05 ~ 03/25</div>
+            <div class="std-card-brand">아토팜</div>
+            <div class="std-card-name">MLE 크림 로션 300ml 체험 리뷰</div>
+            <div class="std-card-meta">
+              <span class="chip star">⭐ 15조각</span>
+              <span class="chip people">총 10명 선발</span>
+              <span class="chip count">87명 응모 중</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="std-card" style="opacity:0.5;" onclick="openReviewPromise({emoji:'🍼',bg:'linear-gradient(135deg,#F5F5F5,#E0E0E0)',brand:'닥터브라운',name:'옵션스+ 젖병 세트 리뷰약속',period:'02/10 ~ 02/28',slots:'총 3명',stars:'20조각',dest:'쿠팡 리뷰',applicants:'156명이 응모했어요',status:'ended',info:'닥터브라운 옵션스+ 젖병 세트\n배앓이 방지 내부 통기 시스템\n광구형 · BPA Free\n정가 32,000원 상당',conditions:['제품 수령 후 7일 이내 리뷰 작성','쿠팡에 솔직한 사용 후기 등록','사진 3장 이상 포함 (실사용 사진)','최소 100자 이상 작성']})">
+          <div class="std-card-img" style="background:linear-gradient(135deg,#F5F5F5,#E0E0E0);">
+            🍼
+            <div class="std-card-status ended">종료</div>
+          </div>
+          <div class="std-card-body">
+            <div class="std-card-date-row">02/10 ~ 02/28</div>
+            <div class="std-card-brand">닥터브라운</div>
+            <div class="std-card-name">옵션스+ 젖병 세트 리뷰약속</div>
+            <div class="std-card-meta">
+              <span class="chip star">⭐ 20조각</span>
+              <span class="chip people">총 3명 선발</span>
+              <span class="chip count">156명 응모</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 별똥별 응모 탭 -->
+      <div id="std-tab-raffle" style="display:none;">
+        <div class="std-card">
+          <div class="std-card-img" style="background:linear-gradient(135deg,#E8F5E9,#C8D8C6);">
+            🪑
+            <div class="std-card-timer">⏰ 10d 05h 38m</div>
+            <div class="std-card-status live">응모중</div>
+          </div>
+          <div class="std-card-body">
+            <div class="std-card-date-row">02/24 ~ 03/09 · 26/03/10 발표</div>
+            <div class="std-card-brand">아가드</div>
+            <div class="std-card-name">휴대용 핸디 부스터 — 접이식 아기의자</div>
+            <div class="std-card-meta">
+              <span class="chip star">⭐ 60조각</span>
+              <span class="chip people">총 1개</span>
+              <span class="chip count">59명 응모 중</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="std-card">
+          <div class="std-card-img" style="background:linear-gradient(135deg,#FCE4EC,#F8BBD0);">
+            🧸
+            <div class="std-card-timer">⏰ 7d 18h 22m</div>
+            <div class="std-card-status live">응모중</div>
+          </div>
+          <div class="std-card-body">
+            <div class="std-card-date-row">02/20 ~ 03/05 · 26/03/07 발표</div>
+            <div class="std-card-brand">젤리캣</div>
+            <div class="std-card-name">바시풀 버니 인형 M사이즈</div>
+            <div class="std-card-meta">
+              <span class="chip star">⭐ 40조각</span>
+              <span class="chip people">총 2개</span>
+              <span class="chip count">83명 응모 중</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 별똥별 교환 탭 내용 -->
+      <div id="std-tab-exchange" style="padding:12px 0 0;display:none;">
+        <div class="std-grid">
+          <div class="std-grid-card">
+            <div class="std-grid-img" style="background:linear-gradient(135deg,#FFF3E0,#E8D8C2);">
+              🧴
+              <div class="left-tag">5개 남음</div>
+            </div>
+            <div class="std-grid-body">
+              <h4>베이비스탠다드 수딩 로션</h4>
+              <div class="price">⭐ 3,000조각</div>
+              <div class="stock">한정 수량</div>
+            </div>
+          </div>
+          <div class="std-grid-card">
+            <div class="std-grid-img" style="background:linear-gradient(135deg,#E8F5E9,#C8D8C6);">
+              🧻
+              <div class="left-tag">8개 남음</div>
+            </div>
+            <div class="std-grid-body">
+              <h4>베이비스탠다드 물티슈 10팩</h4>
+              <div class="price">⭐ 3,000조각</div>
+              <div class="stock">한정 수량</div>
+            </div>
+          </div>
+          <div class="std-grid-card">
+            <div class="std-grid-img" style="background:linear-gradient(135deg,#E3F2FD,#BBDEFB);">
+              👶
+              <div class="left-tag">3개 남음</div>
+            </div>
+            <div class="std-grid-body">
+              <h4>베이비스탠다드 기저귀 샘플팩</h4>
+              <div class="price">⭐ 5,000조각</div>
+              <div class="stock">한정 수량</div>
+            </div>
+          </div>
+          <div class="std-grid-card">
+            <div class="std-grid-img" style="background:linear-gradient(135deg,#FCE4EC,#F8BBD0);">
+              🎁
+              <div class="left-tag">12개 남음</div>
+            </div>
+            <div class="std-grid-body">
+              <h4>소행성 오리지널 턱받이 세트</h4>
+              <div class="price">⭐ 2,000조각</div>
+              <div class="stock">한정 수량</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 웰컴존 탭 내용 -->
+      <div id="std-tab-welcome" style="padding:20px 14px;display:none;text-align:center;">
+        <div style="font-size:48px;margin-bottom:12px;">🎉</div>
+        <div style="font-size:16px;font-weight:800;margin-bottom:6px;">웰컴존</div>
+        <div style="font-size:12px;color:var(--sub);line-height:1.7;margin-bottom:20px;">
+          소행성에 처음 오신 분들을 위한<br>특별 웰컴 혜택이 준비되어 있어요!
+        </div>
+        <div class="std-card">
+          <div class="std-card-img" style="background:linear-gradient(135deg,#EDE7F6,#D1C4E9);">
+            🎁
+            <div class="std-card-status soon">신규회원</div>
+          </div>
+          <div class="std-card-body">
+            <div class="std-card-brand">소행성 웰컴팩</div>
+            <div class="std-card-name">가입 첫 주 미션 완료 시 별똥별 500조각!</div>
+            <div class="std-card-meta">
+              <span class="chip star">⭐ 500조각 보상</span>
+              <span class="chip people">👩 누구나</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ═══════ SCREEN: 프로필 ═══════ -->
+    <div class="screen hidden-right" id="s-profile">
+      <div class="prof-header">
+        <div class="prof-avatar">🐥</div>
+        <div class="prof-name">하은맘</div>
+        <div class="prof-since">소행성 가입 84일째 · 11개월 아기</div>
+      </div>
+
+      <div class="grade-card">
+        <div class="grade-top">
+          <div class="grade-current">
+            <div class="grade-icon">⭐</div>
+            <div class="grade-info"><h4>별맘</h4><p>투표 18회 · 리뷰 7개</p></div>
+          </div>
+          <div class="grade-next">🌟 별똥별맘까지 42%</div>
+        </div>
+        <div class="grade-prog">
+          <div class="grade-prog-label"><span>다음 등급까지</span><strong>투표 12회 · 리뷰 3개 더</strong></div>
+          <div class="grade-bar"><div class="grade-bar-fill" style="width:42%;"></div></div>
+        </div>
+        <div class="grade-tiers">
+          <div class="tier done"><div class="t-icon">🌱</div>새싹맘</div>
+          <div class="tier-line done"></div>
+          <div class="tier current"><div class="t-icon">⭐</div>별맘</div>
+          <div class="tier-line"></div>
+          <div class="tier"><div class="t-icon">🌟</div>별똥별맘</div>
+          <div class="tier-line"></div>
+          <div class="tier"><div class="t-icon">💎</div>인증단</div>
+        </div>
+      </div>
+
+      <div class="stats-row">
+        <div class="stat-box"><div class="s-num">18</div><div class="s-label">투표 참여</div></div>
+        <div class="stat-box"><div class="s-num">7</div><div class="s-label">리뷰 작성</div></div>
+        <div class="stat-box"><div class="s-num">73%</div><div class="s-label">기준 적중률</div></div>
+      </div>
+
+      <div class="mission-section">
+        <div class="mission-title">🎯 별똥별맘 미션</div>
+        <div class="mission-card">
+          <div class="mission-icon vote">🗳️</div>
+          <div class="mission-text"><h5>투표 30회 참여하기</h5><p>기준 세우기에 참여해주세요</p></div>
+          <div class="mission-prog">18/30</div>
+        </div>
+        <div class="mission-card">
+          <div class="mission-icon review">✍️</div>
+          <div class="mission-text"><h5>리뷰 10개 작성하기</h5><p>써봤어요 리뷰를 남겨주세요</p></div>
+          <div class="mission-prog">7/10</div>
+        </div>
+        <div class="mission-card">
+          <div class="mission-icon streak">🔥</div>
+          <div class="mission-text"><h5>7일 연속 참여</h5><p>매일 투표 또는 리뷰 1건</p></div>
+          <div class="mission-prog done">✓ 완료</div>
+        </div>
+      </div>
+
+      <div style="padding:0 14px 20px;">
+        <div style="background:linear-gradient(135deg,#FAF5ED,#FBF9F4);border:1px solid #E8D8C2;border-radius:14px;padding:16px;">
+          <div style="font-size:13px;font-weight:700;color:#A67B3D;margin-bottom:6px;">💎 인증단이 되면?</div>
+          <div style="font-size:11px;color:#9E8248;line-height:1.7;">
+            • 신제품 사전 체험단 우선 선발<br>
+            • 프로필에 인증단 뱃지 부여<br>
+            • 내 리뷰에 "인증단 검증" 마크 표시<br>
+            • 월간 소행성 리워드 포인트 지급
+          </div>
+        </div>
+      </div>
+
+      <!-- 프로필 메뉴 -->
+      <div class="prof-menu">
+        <div class="prof-menu-title">내 활동</div>
+        <div class="prof-menu-item" onclick="goSub('s-my-stars')">
+          <div class="prof-menu-icon" style="background:#FAF5ED;">⭐</div>
+          <div class="prof-menu-text">
+            <h5>내 별똥별</h5>
+            <p>별똥별 조각 적립/사용 내역</p>
+          </div>
+          <div class="prof-menu-val">1,250조각</div>
+          <div class="prof-menu-arrow">›</div>
+        </div>
+        <div class="prof-menu-item" onclick="goSub('s-child-info')">
+          <div class="prof-menu-icon" style="background:#E8F5E9;">👶</div>
+          <div class="prof-menu-text">
+            <h5>아이정보 관리</h5>
+            <p>아이 이름, 생년월일, 성별 등</p>
+          </div>
+          <div class="prof-menu-arrow">›</div>
+        </div>
+      </div>
+
+      <div class="prof-menu">
+        <div class="prof-menu-title">설정</div>
+        <div class="prof-menu-item" onclick="goSub('s-noti-setting')">
+          <div class="prof-menu-icon" style="background:#E3F2FD;">🔔</div>
+          <div class="prof-menu-text">
+            <h5>알림설정</h5>
+            <p>야간알림, 마케팅 알림 관리</p>
+          </div>
+          <div class="prof-menu-arrow">›</div>
+        </div>
+        <div class="prof-menu-item" onclick="goSub('s-block-list')">
+          <div class="prof-menu-icon" style="background:#FAF0EE;">🚫</div>
+          <div class="prof-menu-text">
+            <h5>차단회원 관리</h5>
+            <p>차단한 회원 목록</p>
+          </div>
+          <div class="prof-menu-arrow">›</div>
+        </div>
+      </div>
+
+      <div class="prof-danger">
+        <button class="prof-danger-btn" onclick="alert('로그아웃 되었습니다')">로그아웃</button>
+        <button class="prof-danger-btn red" onclick="alert('정말 탈퇴하시겠습니까?')">탈퇴하기</button>
+      </div>
+    </div>
+
+    <!-- ═══════ SUB: 투표 상세 ═══════ -->
+    <div class="screen sub-screen hidden-right" id="s-vote-detail">
+      <div class="back-header" onclick="goBack()">
+        <span class="arrow">←</span> 별똥별마켓
+      </div>
+      <div class="vd-header">
+        <h2>🧻 아기 물티슈 기준 세우기</h2>
+        <p>412명 참여 · 결과 확정</p>
+      </div>
+
+      <div style="padding:16px 0;">
+        <div class="vd-item voted" onclick="voteSelect(this)">
+          <div class="vd-bar" style="width:82%;"></div>
+          <div class="vd-icon">🧪</div>
+          <div class="vd-text"><h4>성분 안전성</h4><p>유해성분 무첨가 여부</p></div>
+          <div class="vd-pct">82%</div>
+        </div>
+        <div class="vd-item" onclick="voteSelect(this)">
+          <div class="vd-bar" style="width:65%;"></div>
+          <div class="vd-icon">💪</div>
+          <div class="vd-text"><h4>두께 / 내구성</h4><p>찢어지지 않는 튼튼함</p></div>
+          <div class="vd-pct">65%</div>
+        </div>
+        <div class="vd-item" onclick="voteSelect(this)">
+          <div class="vd-bar" style="width:51%;"></div>
+          <div class="vd-icon">💰</div>
+          <div class="vd-text"><h4>가격 대비 매수</h4><p>1매당 가격 비교</p></div>
+          <div class="vd-pct">51%</div>
+        </div>
+        <div class="vd-item" onclick="voteSelect(this)">
+          <div class="vd-bar" style="width:43%;"></div>
+          <div class="vd-icon">🌿</div>
+          <div class="vd-text"><h4>향 유무</h4><p>무향 또는 은은한 향</p></div>
+          <div class="vd-pct">43%</div>
+        </div>
+        <div class="vd-item" onclick="voteSelect(this)">
+          <div class="vd-bar" style="width:31%;"></div>
+          <div class="vd-icon">💧</div>
+          <div class="vd-text"><h4>수분 함량</h4><p>촉촉함 유지</p></div>
+          <div class="vd-pct">31%</div>
+        </div>
+
+        <div class="vd-meta">소행성 엄마 <strong>412명</strong>이 기준을 세웠어요</div>
+      </div>
+
+      <div class="vd-cta" onclick="goSub('s-product-detail')">
+        <span style="font-size:18px;">🏅</span>
+        <div>
+          <div style="font-weight:700;">이 기준으로 고른 물티슈 보러가기</div>
+          <div style="font-size:10px;color:#9E8248;font-weight:400;">기준 충족 제품 6개를 골라봤어요</div>
+        </div>
+        <span style="margin-left:auto;">→</span>
+      </div>
+
+      <div style="padding:16px 0;">
+        <div style="font-size:14px;font-weight:800;padding:0 14px 10px;">기준 충족 제품</div>
+        <div class="prod-scroll">
+          <div class="prod-card" onclick="goSub('s-product-detail')">
+            <div class="prod-img">🧻<div class="prod-badge">기준충족</div></div>
+            <div class="prod-info"><h4>마더케이 순수물 아기물티슈</h4><div class="prod-price">9,900원</div><div class="prod-tags"><span class="prod-tag">무향</span><span class="prod-tag">재구매89%</span></div></div>
+          </div>
+          <div class="prod-card" onclick="goSub('s-product-detail')">
+            <div class="prod-img">🧻<div class="prod-badge">기준충족</div></div>
+            <div class="prod-info"><h4>베베숲 시그니처 엠보 물티슈</h4><div class="prod-price">11,200원</div><div class="prod-tags"><span class="prod-tag">두꺼움</span><span class="prod-tag">성분안전</span></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════ SUB: 제품 상세 ═══════ -->
+    <div class="screen sub-screen hidden-right" id="s-product-detail">
+      <div class="back-header" onclick="goBack()">
+        <span class="arrow">←</span> 뒤로
+      </div>
+
+      <div class="pd-image">🧴</div>
+      <div class="pd-body">
+        <div class="pd-badges">
+          <span class="pd-badge community">🏅 소행성 인정템</span>
+          <span class="pd-badge best">🔥 재구매 1위</span>
+          <span class="pd-badge value">💚 기준 4/4 충족</span>
+        </div>
+        <div class="pd-name">아토팜 MLE 크림 수딩 베이비 로션 300ml</div>
+        <div class="pd-price-row">
+          <span class="pd-discount">21%</span>
+          <span class="pd-price">18,900원</span>
+          <span class="pd-original">24,000원</span>
+        </div>
+        <div class="pd-criteria">
+          <div class="pd-criteria-title">📐 소행성 기준 체크 <span style="font-size:10px;color:var(--sub);font-weight:400;">(286명이 세운 기준)</span></div>
+          <div class="pd-criteria-item"><span class="check">✓</span><span>성분 안전성 — EWG 그린 등급</span></div>
+          <div class="pd-criteria-item"><span class="check">✓</span><span>보습 지속력 — 리뷰 평균 4.5/5</span></div>
+          <div class="pd-criteria-item"><span class="check">✓</span><span>무향 — 향료 무첨가</span></div>
+          <div class="pd-criteria-item"><span class="check">✓</span><span>가격 — ml당 63원 (평균 이하)</span></div>
+        </div>
+        <div class="pd-reviews">
+          <div class="pd-review-chip"><div class="num">92%</div><div class="lab">재구매 의향</div></div>
+          <div class="pd-review-chip"><div class="num">38</div><div class="lab">소행성 리뷰</div></div>
+          <div class="pd-review-chip"><div class="num">4.7</div><div class="lab">평균 별점</div></div>
+        </div>
+        <button class="coupang-btn">🛒 쿠팡에서 최저가로 보기</button>
+        <div class="coupang-sub">이 링크를 통한 구매 시 소행성에 소정의 수수료가 지급됩니다</div>
+
+        <div style="margin-top:20px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+            <span style="font-size:14px;font-weight:800;">엄마들 리뷰</span>
+            <a href="#" style="font-size:12px;color:var(--pri);font-weight:600;text-decoration:none;">리뷰쓰기</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="review-card">
+        <div class="review-head">
+          <div class="review-avatar" style="background:linear-gradient(135deg,#9BBECA,#7EA8B8);">👶</div>
+          <span class="review-name">서연맘</span>
+          <span class="review-meta">6개월 · 어제</span>
+          <span class="review-tag">⭐재구매</span>
+        </div>
+        <div class="review-body">태열 심한 울 아가한테도 자극 없이 잘 맞아요. 펌프형이라 한 손으로 짜기 편해요 👍</div>
+      </div>
+      <div class="review-card">
+        <div class="review-head">
+          <div class="review-avatar" style="background:linear-gradient(135deg,#E8C9A0,#D4AA78);">🐥</div>
+          <span class="review-name">하은맘</span>
+          <span class="review-meta">11개월 · 2일 전</span>
+          <span class="review-tag">💰가성비</span>
+        </div>
+        <div class="review-body">둘째부터 쭉 쓰고 있어요. 발림성 좋고 끈적임 없어서 좋아요.</div>
+      </div>
+    </div>
+
+    <!-- ═══════ SUB: 월령 라운지 ═══════ -->
+    <div class="screen sub-screen hidden-right" id="s-month-lounge">
+      <div class="back-header" onclick="goBack()">
+        <span class="arrow">←</span> 월령 라운지
+      </div>
+
+      <div class="lounge-hero">
+        <div class="lounge-emoji">👶✨</div>
+        <h2>11개월 아기 엄마 라운지</h2>
+        <p>같은 고민, 같은 기쁨을 나누는 우리만의 공간</p>
+        <div class="lounge-members">
+          <div class="avatars">
+            <span>🐥</span><span>🌸</span><span>🦊</span><span>🐰</span><span>🌼</span>
+          </div>
+          <span class="count">23명 활동 중 🟢</span>
+        </div>
+      </div>
+
+      <div class="lounge-tabs" id="loungeTabs">
+        <div class="lounge-tab active" data-lounge="chat">💬 실시간 수다</div>
+        <div class="lounge-tab" data-lounge="posts">📝 우리끼리 글</div>
+        <div class="lounge-tab" data-lounge="info">📌 월령 정보</div>
+      </div>
+
+      <!-- 실시간 수다 -->
+      <div class="lounge-panel active" id="lounge-chat">
+        <div class="chat-area" id="chatArea">
+          <div class="chat-bubble other">
+            <div class="chat-name">서연맘 🌟</div>
+            혹시 11개월 아기 낮잠 몇 번 재우세요? 우리는 아직 2번인데 1번으로 줄여야 하나 고민이에요 😅
+            <div class="chat-time">오후 2:42</div>
+          </div>
+          <div class="chat-bubble other">
+            <div class="chat-name">지우맘 🌱</div>
+            저희도 2번이에요! 소아과에서 아직 괜찮다고 했어요~
+            <div class="chat-time">오후 2:43</div>
+          </div>
+          <div class="chat-bubble mine">
+            저희 애는 낮잠 1번으로 줄었는데 밤잠을 12시간 자요 ㅎㅎ
+            <div class="chat-time">오후 2:45</div>
+          </div>
+          <div class="chat-bubble other">
+            <div class="chat-name">민준맘 💎</div>
+            부럽다.. 우리는 아직 밤중수유 중 😭 언제 끊지..
+            <div class="chat-time">오후 2:47</div>
+          </div>
+          <div class="chat-bubble other">
+            <div class="chat-name">수아맘 ⭐</div>
+            11개월이면 슬슬 첫 걸음마 시작 안 했어요? 우리 어제 3걸음 걸었어요!! 🥹
+            <div class="chat-time">오후 2:50</div>
+          </div>
+          <div class="chat-bubble mine">
+            대박 축하해요!! 🎉🎉 우리는 아직 잡고 서기만 해요 ㅋㅋ
+            <div class="chat-time">오후 2:51</div>
+          </div>
+          <div class="chat-bubble other">
+            <div class="chat-name">하윤맘 🌸</div>
+            다들 이유식 3단계 하고 있죠? 무른밥인데 잘 안 먹어서 걱정이에요 ㅠㅠ
+            <div class="chat-time">오후 2:55</div>
+          </div>
+          <div class="chat-bubble other">
+            <div class="chat-name">서연맘 🌟</div>
+            저도요!! 밥보다 과일만 찾아요 🍌 어떻게 해야할까요
+            <div class="chat-time">오후 2:56</div>
+          </div>
+        </div>
+        <div class="chat-input-area">
+          <input type="text" id="loungeInput" placeholder="메시지를 입력하세요...">
+          <button onclick="sendLoungeChat()">➤</button>
+        </div>
+      </div>
+
+      <!-- 우리끼리 글 -->
+      <div class="lounge-panel" id="lounge-posts">
+        <div class="lounge-post">
+          <div class="lounge-post-head">
+            <div class="lounge-post-avatar" style="background:linear-gradient(135deg,#9BBECA,#7EA8B8);">👶</div>
+            <div>
+              <div class="lounge-post-name">서연맘</div>
+              <div class="lounge-post-meta">11개월 · 1시간 전</div>
+            </div>
+          </div>
+          <div class="lounge-post-body">11개월 아기 하루 일과 공유해요! ☀️<br><br>7:00 기상 + 모유<br>9:00 오전 낮잠 (40분)<br>10:00 이유식 (무른밥+소고기미역국)<br>12:00 간식 (바나나+쌀과자)<br>14:00 오후 낮잠 (1시간)<br>16:00 이유식 (닭죽+야채)<br>18:00 목욕타임 🛁<br>19:30 취침<br><br>다들 일과가 어떻게 되시나요?</div>
+          <div class="lounge-post-reactions">💬 12 · ❤️ 28 · 🔖 저장 15</div>
+        </div>
+        <div class="lounge-post">
+          <div class="lounge-post-head">
+            <div class="lounge-post-avatar" style="background:linear-gradient(135deg,#E8C9A0,#D4AA78);">🐥</div>
+            <div>
+              <div class="lounge-post-name">하은맘</div>
+              <div class="lounge-post-meta">11개월 · 3시간 전</div>
+            </div>
+          </div>
+          <div class="lounge-post-body">11개월 아기 장난감 추천 리스트 정리했어요! 🧸<br><br>1. 컵쌓기 — 대소근육 발달 최고<br>2. 사운드북 — 버튼 누르는 재미<br>3. 공놀이 — 던지고 굴리기 시작<br>4. 블록 — 쌓고 무너뜨리기<br>5. 밀대차 — 걸음마 연습용<br><br>특히 컵쌓기는 진짜 가성비 끝판왕이에요 👍</div>
+          <div class="lounge-post-reactions">💬 8 · ❤️ 42 · 🔖 저장 31</div>
+        </div>
+        <div class="lounge-post">
+          <div class="lounge-post-head">
+            <div class="lounge-post-avatar" style="background:linear-gradient(135deg,#C9A5B5,#A1788B);">🐰</div>
+            <div>
+              <div class="lounge-post-name">수아맘</div>
+              <div class="lounge-post-meta">11개월 · 5시간 전</div>
+            </div>
+          </div>
+          <div class="lounge-post-body">첫 걸음마 신발 뭐 사셨어요? 👟<br>뉴발란스 vs 나이키 vs 아식스<br>다들 추천해주세요! 발볼 넓은 아이예요~</div>
+          <div class="lounge-post-reactions">💬 19 · ❤️ 15 · 🔖 저장 8</div>
+        </div>
+      </div>
+
+      <!-- 월령 정보 -->
+      <div class="lounge-panel" id="lounge-info">
+        <div style="padding:14px;">
+          <div style="background:linear-gradient(135deg,#FFF3E0,#E8D8C2);border-radius:16px;padding:18px;margin-bottom:12px;">
+            <div style="font-size:14px;font-weight:800;margin-bottom:8px;">📊 11개월 발달 기준</div>
+            <div style="font-size:12px;line-height:2;color:var(--text);">
+              ✅ 혼자 잡고 서기<br>
+              ✅ 엄마, 아빠 등 1~2단어 말하기<br>
+              ✅ 컵으로 물 마시기 시도<br>
+              ✅ 손가락으로 작은 물건 집기 (핀셋 잡기)<br>
+              ✅ 까꿍놀이에 반응하기<br>
+              ⬜ 혼자 서기 (12개월 전후)<br>
+              ⬜ 첫 걸음마 (12~15개월)
+            </div>
+          </div>
+          <div style="background:linear-gradient(135deg,#E8F5E9,#C8D8C6);border-radius:16px;padding:18px;margin-bottom:12px;">
+            <div style="font-size:14px;font-weight:800;margin-bottom:8px;">🍚 11개월 이유식 가이드</div>
+            <div style="font-size:12px;line-height:2;color:var(--text);">
+              📌 후기 이유식 (무른밥 단계)<br>
+              🥄 하루 3회 + 간식 1~2회<br>
+              🥩 단백질: 소고기, 닭고기, 두부, 달걀<br>
+              🥦 야채: 브로콜리, 당근, 감자, 시금치<br>
+              🍌 과일: 바나나, 사과, 배<br>
+              ⚠️ 꿀, 생우유 아직 금지!
+            </div>
+          </div>
+          <div style="background:linear-gradient(135deg,#E3F2FD,#BBDEFB);border-radius:16px;padding:18px;">
+            <div style="font-size:14px;font-weight:800;margin-bottom:8px;">💉 예방접종 체크</div>
+            <div style="font-size:12px;line-height:2;color:var(--text);">
+              ✅ BCG (0개월)<br>
+              ✅ B형간염 3차 (6개월)<br>
+              ✅ DTaP 3차 (6개월)<br>
+              ✅ IPV 3차 (6개월)<br>
+              ✅ 인플루엔자 (6개월~)<br>
+              📅 다음: 수두 (12개월)<br>
+              📅 다음: MMR 1차 (12개월)<br>
+              📅 다음: 일본뇌염 (12개월)
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════ SUB: 리뷰약속 상세 ═══════ -->
+    <div class="screen sub-screen hidden-right" id="s-review-promise">
+      <div class="back-header" onclick="goBack()">
+        <span class="arrow">←</span> 리뷰약속
+      </div>
+
+      <div class="rp-hero" id="rpHeroImg" style="background:linear-gradient(135deg,#FFF3E0,#FFECB3);">
+        🧴
+        <div class="rp-status live" id="rpStatus">응모중</div>
+      </div>
+
+      <div class="rp-body">
+        <div class="rp-brand" id="rpBrand">아토팜</div>
+        <div class="rp-name" id="rpName">MLE 크림 로션 300ml 체험 리뷰</div>
+
+        <div class="rp-info-box">
+          <div class="rp-info-row">
+            <span class="rp-info-label">📅 모집기간</span>
+            <span class="rp-info-value" id="rpPeriod">03/05 ~ 03/25</span>
+          </div>
+          <div class="rp-info-row">
+            <span class="rp-info-label">👥 선발인원</span>
+            <span class="rp-info-value" id="rpSlots">총 10명</span>
+          </div>
+          <div class="rp-info-row">
+            <span class="rp-info-label">⭐ 지급 별똥별</span>
+            <span class="rp-info-value" id="rpStars">15조각</span>
+          </div>
+          <div class="rp-info-row">
+            <span class="rp-info-label">📝 리뷰 작성처</span>
+            <span class="rp-info-value" id="rpReviewDest">쿠팡 리뷰</span>
+          </div>
+        </div>
+
+        <div class="rp-section-title">🎁 체험 조건</div>
+        <div class="rp-condition">
+          <div class="rp-condition-item">제품 수령 후 7일 이내 리뷰 작성</div>
+          <div class="rp-condition-item">지정 플랫폼(쿠팡)에 솔직한 사용 후기 등록</div>
+          <div class="rp-condition-item">사진 3장 이상 포함 (실사용 사진)</div>
+          <div class="rp-condition-item">최소 100자 이상 작성</div>
+        </div>
+
+        <div class="rp-section-title">📦 제품 정보</div>
+        <div class="rp-condition" style="margin-bottom:0;">
+          <div style="font-size:13px;line-height:1.8;color:var(--text);">
+            <strong>아토팜 MLE 크림 로션 300ml</strong><br>
+            피부과 테스트 완료 · EWG 그린등급<br>
+            무향 · 보습 지속 12시간<br>
+            <span style="font-size:11px;color:var(--sub);">정가 24,000원 상당</span>
+          </div>
+        </div>
+
+        <div class="rp-applicants">
+          <div class="avatars">
+            <span style="background:linear-gradient(135deg,#9BBECA,#7EA8B8);">👶</span>
+            <span style="background:linear-gradient(135deg,#E8C9A0,#D4AA78);">🐥</span>
+            <span style="background:linear-gradient(135deg,#CF7C6B,#B86B5A);">🌸</span>
+            <span style="background:linear-gradient(135deg,#C9A5B5,#A1788B);">🐰</span>
+          </div>
+          <span id="rpApplicants">87명이 응모했어요</span>
+        </div>
+
+        <div class="rp-btn-group">
+          <button class="rp-btn product" onclick="window.open('https://www.coupang.com','_blank')">🛒 제품보러가기</button>
+          <button class="rp-btn check" onclick="checkReviewWin()">🎯 당첨확인</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 당첨확인 모달 -->
+    <div class="rp-modal-overlay" id="rpModal">
+      <div class="rp-modal">
+        <div class="rp-modal-emoji" id="rpModalEmoji">🎉</div>
+        <div class="rp-modal-title" id="rpModalTitle">축하합니다!</div>
+        <div class="rp-modal-desc" id="rpModalDesc">체험단에 선정되었어요!<br>제품이 곧 배송됩니다.<br>수령 후 7일 이내에 리뷰를 작성해주세요.</div>
+        <button class="rp-modal-btn" onclick="closeReviewModal()">확인</button>
+      </div>
+    </div>
+
+    <!-- ═══════ SUB: 주제별 글목록 ═══════ -->
+    <div class="screen sub-screen hidden-right" id="s-topic-posts">
+      <div class="back-header" onclick="goBack()">
+        <span class="arrow">←</span> <span id="topicTitle">주제</span>
+      </div>
+      <div id="topicPostsArea" style="padding-bottom:20px;"></div>
+    </div>
+
+    <!-- ═══════ SUB: 월령별 글목록 ═══════ -->
+    <div class="screen sub-screen hidden-right" id="s-month-posts">
+      <div class="back-header" onclick="goBack()">
+        <span class="arrow">←</span> <span id="monthTitle">월령</span>
+      </div>
+      <div id="monthPostsArea" style="padding-bottom:20px;"></div>
+    </div>
+
+    <!-- ═══════ SUB: 게시글 상세 + 댓글 ═══════ -->
+    <div class="screen sub-screen hidden-right" id="s-post-detail">
+      <div class="back-header" onclick="goBack()">
+        <span class="arrow">←</span> 게시글
+      </div>
+      <div id="postDetailContent"></div>
+      <div style="padding:0 14px;">
+        <div style="font-size:13px;font-weight:700;margin:12px 0 8px;">💬 댓글 <span id="commentCount">0</span>개</div>
+        <div id="commentList"></div>
+      </div>
+      <div class="comment-input-area">
+        <input class="comment-input" id="commentInput" type="text" placeholder="댓글을 남겨주세요..." onkeydown="if(event.key==='Enter')addComment()">
+        <button class="comment-send" onclick="addComment()">↑</button>
+      </div>
+    </div>
+
+    <!-- ═══════ SUB: 오늘의 질문 상세 ═══════ -->
+    <div class="screen sub-screen hidden-right" id="s-daily-q-detail">
+      <div class="back-header" onclick="goBack()">
+        <span class="arrow">←</span> 오늘의 질문
+      </div>
+      <div style="padding:20px 16px;text-align:center;">
+        <div style="font-size:40px;margin-bottom:10px;">👟</div>
+        <div style="font-size:18px;font-weight:800;line-height:1.6;margin-bottom:6px;">아기 첫 신발,<br>언제 사셨나요?</div>
+        <div style="font-size:12px;color:var(--sub);margin-bottom:20px;">💬 87개 답변 · 🕐 오늘 자정까지</div>
+      </div>
+      <div style="padding:0 14px;">
+        <div style="display:flex;gap:8px;margin-bottom:16px;">
+          <input class="comment-input" id="dqAnswerInput" type="text" placeholder="나의 답변을 입력해주세요!" style="flex:1;" onkeydown="if(event.key==='Enter')addDQAnswer()">
+          <button class="comment-send" onclick="addDQAnswer()">↑</button>
+        </div>
+        <div id="dqNewAnswers"></div>
+        <div class="answer-item">
+          <div class="answer-top"><div class="answer-avatar" style="background:linear-gradient(135deg,#E8C9A0,#D4AA78);">🐥</div><span class="answer-name">하은맘</span><span class="answer-meta">⭐ 별맘 · 11개월 · 1시간 전</span></div>
+          <div class="answer-text">10개월에 첫 걸음 떼고 바로 샀어요! 뉴발란스 아기신발 샀는데 발볼이 넓어서 좋더라고요 👍</div>
+          <div class="answer-like on" onclick="this.classList.toggle('on')">❤️ 24</div>
+        </div>
+        <div class="answer-item">
+          <div class="answer-top"><div class="answer-avatar" style="background:linear-gradient(135deg,#9BBECA,#7EA8B8);">👶</div><span class="answer-name">서연맘</span><span class="answer-meta">🌟 별똥별맘 · 6개월 · 2시간 전</span></div>
+          <div class="answer-text">아직 안 샀어요~ 12개월 되면 사려고 하는데 추천 부탁드려요!</div>
+          <div class="answer-like" onclick="this.classList.toggle('on')">🤍 8</div>
+        </div>
+        <div class="answer-item">
+          <div class="answer-top"><div class="answer-avatar" style="background:linear-gradient(135deg,#C9929F,#B87190);">🦊</div><span class="answer-name">민준맘</span><span class="answer-meta">💎 인증단 · 24개월 · 3시간 전</span></div>
+          <div class="answer-text">돌 때 사서 신겼는데 처음엔 신기 싫어했어요 ㅋㅋ 집에서 양말신발로 연습시키니까 잘 적응하더라고요!</div>
+          <div class="answer-like" onclick="this.classList.toggle('on')">🤍 31</div>
+        </div>
+        <div class="answer-item">
+          <div class="answer-top"><div class="answer-avatar" style="background:linear-gradient(135deg,#8DB8A0,#6B9E82);">🌸</div><span class="answer-name">지우맘</span><span class="answer-meta">🌱 새싹맘 · 3개월 · 5시간 전</span></div>
+          <div class="answer-text">아직 멀었지만 미리 정보 수집 중이에요 📝 다들 좋은 정보 감사해요!</div>
+          <div class="answer-like" onclick="this.classList.toggle('on')">🤍 5</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════ SUB: 글쓰기 ═══════ -->
+    <div class="screen sub-screen hidden-right" id="s-write-post" style="background:#fff;display:flex;flex-direction:column;">
+      <div class="write-screen-header">
+        <button class="ws-cancel" onclick="goBack()">취소</button>
+        <div class="ws-title">글쓰기</div>
+        <button class="ws-submit" id="writeSubmitBtn" onclick="submitPost()">등록</button>
+      </div>
+      <div class="write-category-bar">
+        <div class="write-cat active" onclick="pickWriteCat(this)">💬 자유</div>
+        <div class="write-cat" onclick="pickWriteCat(this)">❓ 질문</div>
+        <div class="write-cat" onclick="pickWriteCat(this)">⭐ 추천</div>
+        <div class="write-cat" onclick="pickWriteCat(this)">😥 고민</div>
+        <div class="write-cat" onclick="pickWriteCat(this)">📸 일상</div>
+      </div>
+      <div class="write-body">
+        <input class="write-title-input" id="writeTitle" type="text" placeholder="제목을 입력해주세요" oninput="checkWriteReady()">
+        <textarea class="write-textarea" id="writeBody" placeholder="엄마들과 나누고 싶은 이야기를 적어주세요 ✍️&#10;&#10;Tip: 구체적인 경험이나 질문일수록 답변이 많이 와요!" oninput="checkWriteReady()"></textarea>
+      </div>
+      <div class="write-toolbar">
+        <div class="write-tool-btn">📷</div>
+        <div class="write-tool-btn">🏷️</div>
+        <input class="write-tag-input" id="writeTags" type="text" placeholder="#태그 입력 (예: #아기로션 #추천)">
+      </div>
+    </div>
+
+    <!-- ═══════ SUB: 내 별똥별 ═══════ -->
+    <div class="screen sub-screen hidden-right" id="s-my-stars">
+      <div class="back-header" onclick="goBack()">
+        <span class="arrow">←</span> 내 별똥별
+      </div>
+      <div class="sub-content">
+        <div class="star-summary">
+          <div>
+            <div style="font-size:11px;color:#9E8248;font-weight:600;margin-bottom:4px;">보유 별똥별 조각</div>
+            <div class="star-total">⭐ 1,250</div>
+          </div>
+        </div>
+
+        <div style="font-size:13px;font-weight:700;margin-bottom:12px;">적립/사용 내역</div>
+        <div class="star-history-item">
+          <div class="sh-icon" style="background:#ECF3EE;">✍️</div>
+          <div class="sh-info"><h5>리뷰 작성 보상</h5><p>아토팜 로션 리뷰 · 오늘</p></div>
+          <div class="sh-amount plus">+50</div>
+        </div>
+        <div class="star-history-item">
+          <div class="sh-icon" style="background:#F3EBE9;">🗳️</div>
+          <div class="sh-info"><h5>투표 참여 보상</h5><p>기저귀 기준 세우기 · 어제</p></div>
+          <div class="sh-amount plus">+10</div>
+        </div>
+        <div class="star-history-item">
+          <div class="sh-icon" style="background:#FAF0EE;">🎁</div>
+          <div class="sh-info"><h5>별똥별 교환 사용</h5><p>물티슈 10팩 교환 · 2일 전</p></div>
+          <div class="sh-amount minus">-3,000</div>
+        </div>
+        <div class="star-history-item">
+          <div class="sh-icon" style="background:#ECF3EE;">🔥</div>
+          <div class="sh-info"><h5>7일 연속 출석 보너스</h5><p>연속 출석 달성 · 3일 전</p></div>
+          <div class="sh-amount plus">+100</div>
+        </div>
+        <div class="star-history-item">
+          <div class="sh-icon" style="background:#F3EBE9;">💬</div>
+          <div class="sh-info"><h5>커뮤니티 글 작성</h5><p>아기로션 추천 글 · 4일 전</p></div>
+          <div class="sh-amount plus">+20</div>
+        </div>
+        <div class="star-history-item">
+          <div class="sh-icon" style="background:#FAF5ED;">🎉</div>
+          <div class="sh-info"><h5>웰컴 보너스</h5><p>가입 첫 주 미션 완료 · 2/10</p></div>
+          <div class="sh-amount plus">+500</div>
+        </div>
+        <div class="star-history-item">
+          <div class="sh-icon" style="background:#F3EBE9;">🗳️</div>
+          <div class="sh-info"><h5>투표 참여 보상</h5><p>아기 물티슈 기준 · 2/8</p></div>
+          <div class="sh-amount plus">+10</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════ SUB: 아이정보 관리 ═══════ -->
+    <div class="screen sub-screen hidden-right" id="s-child-info">
+      <div class="back-header" onclick="goBack()">
+        <span class="arrow">←</span> 아이정보 관리
+      </div>
+      <div class="sub-content">
+        <div style="text-align:center;margin-bottom:20px;">
+          <div style="width:64px;height:64px;border-radius:50%;background:linear-gradient(135deg,#E8C9A0,#D4AA78);display:inline-flex;align-items:center;justify-content:center;font-size:28px;margin-bottom:8px;">🐥</div>
+          <div style="font-size:14px;font-weight:700;">하은이 정보</div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">아이 이름 (태명/닉네임)</label>
+          <input class="form-input" type="text" value="하은" placeholder="아이 이름을 입력해주세요">
+        </div>
+        <div class="form-group">
+          <label class="form-label">생년월일</label>
+          <input class="form-input" type="date" value="2025-03-15">
+        </div>
+        <div class="form-group">
+          <label class="form-label">성별</label>
+          <select class="form-select">
+            <option selected>여아</option>
+            <option>남아</option>
+            <option>선택 안 함</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">현재 월령</label>
+          <div class="form-input" style="background:#F3EBE9;color:var(--pri);font-weight:700;">11개월</div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">특이사항 (선택)</label>
+          <input class="form-input" type="text" value="아토피 피부" placeholder="알레르기, 특이체질 등">
+        </div>
+
+        <div style="margin-top:8px;">
+          <button class="form-btn" onclick="alert('저장되었습니다!')">저장하기</button>
+        </div>
+
+        <div style="text-align:center;margin-top:16px;">
+          <button style="font-size:12px;color:var(--pri);font-weight:600;background:none;border:none;cursor:pointer;font-family:inherit;">+ 둘째 아이 추가하기</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════ SUB: 알림설정 ═══════ -->
+    <div class="screen sub-screen hidden-right" id="s-noti-setting">
+      <div class="back-header" onclick="goBack()">
+        <span class="arrow">←</span> 알림설정
+      </div>
+      <div class="sub-content">
+        <div class="toggle-row">
+          <div class="toggle-label">
+            <h5>전체 알림</h5>
+            <p>모든 푸시 알림 on/off</p>
+          </div>
+          <div class="toggle-switch on" onclick="this.classList.toggle('on')"></div>
+        </div>
+        <div class="toggle-row">
+          <div class="toggle-label">
+            <h5>커뮤니티 알림</h5>
+            <p>내 글에 댓글, 공감 시 알림</p>
+          </div>
+          <div class="toggle-switch on" onclick="this.classList.toggle('on')"></div>
+        </div>
+        <div class="toggle-row">
+          <div class="toggle-label">
+            <h5>투표/스탠다드 알림</h5>
+            <p>새 투표, 인정템 확정 시 알림</p>
+          </div>
+          <div class="toggle-switch on" onclick="this.classList.toggle('on')"></div>
+        </div>
+        <div class="toggle-row">
+          <div class="toggle-label">
+            <h5>별똥별마켓 알림</h5>
+            <p>리뷰약속, 응모 결과 알림</p>
+          </div>
+          <div class="toggle-switch on" onclick="this.classList.toggle('on')"></div>
+        </div>
+        <div class="toggle-row" style="border-bottom:none;padding-bottom:0;">
+          <div class="toggle-label">
+            <h5>🌙 야간 알림 (22시~8시)</h5>
+            <p>밤 시간 푸시 알림 차단</p>
+          </div>
+          <div class="toggle-switch" onclick="this.classList.toggle('on')"></div>
+        </div>
+        <div style="margin-top:20px;padding:14px;background:#FAF5ED;border-radius:12px;border:1px solid #E8D8C2;">
+          <div style="font-size:11px;color:#9E8248;line-height:1.7;">
+            💡 <strong>야간 알림을 끄면</strong> 22시~8시 사이에는 푸시 알림이 오지 않아요. 아기와 함께 편안한 밤 보내세요 🌙
+          </div>
+        </div>
+
+        <div style="margin-top:20px;border-top:1px solid var(--border);padding-top:16px;">
+          <div class="toggle-row">
+            <div class="toggle-label">
+              <h5>마케팅 알림</h5>
+              <p>이벤트, 프로모션 안내</p>
+            </div>
+            <div class="toggle-switch" onclick="this.classList.toggle('on')"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════ SUB: 차단회원 관리 ═══════ -->
+    <div class="screen sub-screen hidden-right" id="s-block-list">
+      <div class="back-header" onclick="goBack()">
+        <span class="arrow">←</span> 차단회원 관리
+      </div>
+      <div class="sub-content">
+        <div style="font-size:12px;color:var(--sub);margin-bottom:16px;line-height:1.7;">
+          차단한 회원의 글과 댓글은 커뮤니티에서 보이지 않아요.
+        </div>
+
+        <div class="block-item">
+          <div class="block-avatar" style="background:linear-gradient(135deg,#E0E0E0,#BDBDBD);">😶</div>
+          <div class="block-info">
+            <h5>스팸계정01</h5>
+            <p>2025.02.15 차단</p>
+          </div>
+          <button class="block-unblock" onclick="this.textContent=this.textContent==='해제됨'?'차단해제':'해제됨'">차단해제</button>
+        </div>
+        <div class="block-item">
+          <div class="block-avatar" style="background:linear-gradient(135deg,#FFCDD2,#EF9A9A);">😡</div>
+          <div class="block-info">
+            <h5>광고쟁이맘</h5>
+            <p>2025.02.20 차단</p>
+          </div>
+          <button class="block-unblock" onclick="this.textContent=this.textContent==='해제됨'?'차단해제':'해제됨'">차단해제</button>
+        </div>
+
+        <div style="text-align:center;padding:30px 0;color:var(--sub);font-size:12px;">
+          총 <strong style="color:var(--text);">2명</strong> 차단 중
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /screens -->
+
+  <!-- FAB 글쓰기 버튼 -->
+  <button class="fab-write" id="fabWrite" onclick="goSub('s-write-post')">✏️</button>
+
+  <!-- Bottom Nav -->
+  <div class="bottom-nav">
+    <button class="nav-btn active" onclick="goTab('s-community',this)">
+      <div class="icon">💬</div>커뮤니티
+    </button>
+    <button class="nav-btn" onclick="goTab('s-info',this)">
+      <div class="icon">📖</div>육아정보
+    </button>
+    <button class="nav-btn" onclick="goTab('s-standard',this)">
+      <div class="icon">📐</div>스탠다드
+    </button>
+    <button class="nav-btn" onclick="goTab('s-market',this)">
+      <div class="icon">⭐</div>별똥별마켓
+      <div class="badge">3</div>
+    </button>
+    <button class="nav-btn" onclick="goTab('s-profile',this)">
+      <div class="icon">👤</div>프로필
+    </button>
+  </div>
+</div>
+
+
+<script>
+// ─── Navigation ───
+var currentTab = 's-community';
+var navHistory = [];
+var mainTabs = ['s-community','s-info','s-standard','s-market','s-profile'];
+
+function goTab(id, btn) {
+  // Close any sub-screens
+  navHistory = [];
+  document.querySelectorAll('.sub-screen').forEach(function(s){ s.classList.remove('active'); s.classList.add('hidden-right'); });
+
+  // Switch tab
+  var oldIdx = mainTabs.indexOf(currentTab);
+  var newIdx = mainTabs.indexOf(id);
+
+  document.querySelectorAll('.screen:not(.sub-screen)').forEach(function(s){
+    if(s.id === id){
+      s.classList.remove('hidden-left','hidden-right');
+      s.classList.add('active');
+    } else {
+      s.classList.remove('active');
+      s.classList.add(mainTabs.indexOf(s.id) < newIdx ? 'hidden-left' : 'hidden-right');
+    }
+  });
+
+  currentTab = id;
+
+  // Show/hide FAB (community only)
+  var fab = document.getElementById('fabWrite');
+  if(fab) fab.style.display = (id === 's-community') ? '' : 'none';
+
+  // Update nav
+  document.querySelectorAll('.nav-btn').forEach(function(b){ b.classList.remove('active'); });
+  if(btn) btn.classList.add('active');
+
+  // Update header
+  updateHeader(id);
+}
+
+function goSub(id) {
+  navHistory.push(currentTab);
+  var target = document.getElementById(id);
+  if(target){
+    target.scrollTop = 0;
+    target.classList.remove('hidden-right');
+    target.classList.add('active');
+  }
+  // Hide FAB on sub-screens
+  var fab = document.getElementById('fabWrite');
+  if(fab) fab.style.display = 'none';
+  updateHeader(id);
+}
+
+function goBack() {
+  var from = navHistory.pop();
+  document.querySelectorAll('.sub-screen.active').forEach(function(s){
+    s.classList.remove('active');
+    s.classList.add('hidden-right');
+  });
+  // If going back to another sub
+  if(from && from.indexOf('s-') === 0 && document.getElementById(from)){
+    var el = document.getElementById(from);
+    if(el.classList.contains('sub-screen')){
+      el.classList.remove('hidden-right');
+      el.classList.add('active');
+    }
+  }
+  // Show FAB only when back on community main (no sub-screens open)
+  var fab = document.getElementById('fabWrite');
+  var anySub = document.querySelector('.sub-screen.active');
+  if(fab) fab.style.display = (currentTab === 's-community' && !anySub) ? '' : 'none';
+  updateHeader(currentTab);
+}
+
+function updateHeader(id) {
+  var header = document.getElementById('appHeader');
+  var statusBar = document.getElementById('statusBar');
+  if(id === 's-profile'){
+    header.style.display = 'none';
+    statusBar.style.background = 'transparent';
+    statusBar.style.color = '#fff';
+  } else {
+    header.style.display = '';
+    statusBar.style.background = '';
+    statusBar.style.color = '';
+  }
+}
+
+// ─── Emoji Reactions ───
+var reactCount = 0;
+function toggleReact(btn) {
+  var countEl = btn.querySelector('.rc');
+  var count = parseInt(countEl.textContent) || 0;
+  if(btn.classList.contains('on')){
+    btn.classList.remove('on');
+    countEl.textContent = count - 1;
+  } else {
+    btn.classList.add('on');
+    countEl.textContent = count + 1;
+    reactCount++;
+    if(reactCount === 3){
+      showToast();
+      reactCount = 0;
+    }
+  }
+}
+
+// ─── Empathy Vote ───
+function pickEmpathy(el) {
+  el.parentElement.querySelectorAll('.emp-opt').forEach(function(o){ o.classList.remove('sel'); });
+  el.classList.add('sel');
+}
+
+// ─── Vote Detail Select ───
+function voteSelect(el) {
+  el.parentElement.querySelectorAll('.vd-item').forEach(function(i){ i.classList.remove('voted'); });
+  el.classList.add('voted');
+}
+
+// ─── Toast ───
+function showToast() {
+  var toast = document.getElementById('toast');
+  toast.classList.add('show');
+  setTimeout(function(){ toast.classList.remove('show'); }, 2500);
+}
+
+// ─── Community tab switch ───
+var commTabMap = {all:'comm-all', popular:'comm-popular', topic:'comm-topic', month:'comm-month'};
+document.querySelectorAll('#comm-tabs .seg-tab').forEach(function(tab){
+  tab.addEventListener('click', function(){
+    document.querySelectorAll('#comm-tabs .seg-tab').forEach(function(t){ t.classList.remove('active'); });
+    tab.classList.add('active');
+    var key = tab.getAttribute('data-comm');
+    Object.keys(commTabMap).forEach(function(k){
+      var el = document.getElementById(commTabMap[k]);
+      if(el){ el.classList.remove('active'); }
+    });
+    var target = document.getElementById(commTabMap[key]);
+    if(target) target.classList.add('active');
+    // FAB only on 전체 tab
+    var fab = document.getElementById('fabWrite');
+    if(fab) fab.style.display = (key === 'all') ? '' : 'none';
+  });
+});
+
+// ─── Segment tab switch (non-community) ───
+document.querySelectorAll('.seg-tabs:not(#comm-tabs):not(#std-screen-tabs)').forEach(function(tabGroup){
+  tabGroup.querySelectorAll('.seg-tab').forEach(function(tab){
+    tab.addEventListener('click', function(){
+      tabGroup.querySelectorAll('.seg-tab').forEach(function(t){ t.classList.remove('active'); });
+      tab.classList.add('active');
+    });
+  });
+});
+
+// ─── Write Post Functions ───
+var writeCategory = '💬 자유';
+
+function pickWriteCat(el) {
+  document.querySelectorAll('.write-cat').forEach(function(c){ c.classList.remove('active'); });
+  el.classList.add('active');
+  writeCategory = el.textContent.trim();
+}
+
+function checkWriteReady() {
+  var title = document.getElementById('writeTitle').value.trim();
+  var body = document.getElementById('writeBody').value.trim();
+  document.getElementById('writeSubmitBtn').disabled = !(title && body);
+}
+
+function submitPost() {
+  var title = document.getElementById('writeTitle').value.trim();
+  var body = document.getElementById('writeBody').value.trim();
+  var tags = document.getElementById('writeTags').value.trim();
+  if(!title || !body) return;
+
+  var avatars = ['🐥','👶','🌸','🦊','🐰','🐱','🐻'];
+  var gradients = ['g1','g2','g3','g4'];
+  var randomAvatar = avatars[Math.floor(Math.random()*avatars.length)];
+  var randomGrad = gradients[Math.floor(Math.random()*gradients.length)];
+
+  var tagHtml = '';
+  if(tags){
+    var tagList = tags.split(/\s+/).filter(function(t){ return t; });
+    tagList = tagList.map(function(t){ return t.charAt(0)==='#' ? t : '#'+t; });
+    tagHtml = '<span class="tag">' + tagList.join(' ') + '</span>';
+  }
+
+  var bodyLines = body.replace(/\n/g,'<br>');
+
+  var postHtml = '<div class="post" style="animation:fadeInUp .4s ease;border:2px solid var(--pri);">' +
+    '<div class="post-head"><div class="p-avatar '+randomGrad+'">'+randomAvatar+'</div><div><div class="p-name">하은맘 <span style="font-size:9px;background:#F3EBE9;color:var(--pri);padding:2px 6px;border-radius:6px;font-weight:700;">'+writeCategory+'</span></div><div class="p-badges"><span class="p-tier t1">⭐ 별맘</span> <span class="p-meta">11개월 · 방금</span></div></div><div class="p-more">⋯</div></div>' +
+    '<div class="p-body"><strong style="font-size:14px;">'+title+'</strong><br>'+bodyLines+'<br>'+tagHtml+'</div>' +
+    '<div class="reactions">' +
+    '<button class="react-btn" onclick="toggleReact(this)"><div class="ri">😢</div><div class="rc">0</div><div class="rl">공감</div></button>' +
+    '<button class="react-btn" onclick="toggleReact(this)"><div class="ri">😂</div><div class="rc">0</div><div class="rl">ㅋㅋ</div></button>' +
+    '<button class="react-btn" onclick="toggleReact(this)"><div class="ri">💡</div><div class="rc">0</div><div class="rl">도움돼요</div></button>' +
+    '<button class="react-btn" onclick="toggleReact(this)"><div class="ri">💪</div><div class="rc">0</div><div class="rl">응원해요</div></button>' +
+    '<button class="react-btn" onclick="toggleReact(this)"><div class="ri">💬</div><div class="rc">0</div><div class="rl">댓글</div></button>' +
+    '<button class="react-btn"><div class="ri">🔗</div><div class="rc"></div><div class="rl">공유</div></button></div></div>';
+
+  var area = document.getElementById('new-posts-area');
+  area.insertAdjacentHTML('afterbegin', postHtml);
+
+  // Clear form
+  document.getElementById('writeTitle').value = '';
+  document.getElementById('writeBody').value = '';
+  document.getElementById('writeTags').value = '';
+  document.getElementById('writeSubmitBtn').disabled = true;
+
+  // Go back to community
+  goBack();
+
+  // Scroll to top to show new post
+  setTimeout(function(){
+    document.getElementById('s-community').scrollTop = 0;
+    showToast();
+  }, 400);
+}
+
+// ─── 스탠다드 screen tab switch ───
+var stdScreenTabs = document.querySelectorAll('#std-screen-tabs .seg-tab');
+var stdScreenPanels = ['std-screen-vote','std-screen-approved'];
+stdScreenTabs.forEach(function(tab, idx){
+  tab.addEventListener('click', function(){
+    stdScreenTabs.forEach(function(t){ t.classList.remove('active'); });
+    tab.classList.add('active');
+    stdScreenPanels.forEach(function(id){
+      var el = document.getElementById(id);
+      if(el) el.style.display = 'none';
+    });
+    var target = document.getElementById(stdScreenPanels[idx]);
+    if(target) target.style.display = '';
+  });
+});
+
+// ─── 월령 라운지 탭 전환 ───
+document.querySelectorAll('#loungeTabs .lounge-tab').forEach(function(tab){
+  tab.addEventListener('click', function(){
+    document.querySelectorAll('#loungeTabs .lounge-tab').forEach(function(t){ t.classList.remove('active'); });
+    tab.classList.add('active');
+    var key = tab.getAttribute('data-lounge');
+    document.querySelectorAll('.lounge-panel').forEach(function(p){ p.classList.remove('active'); });
+    var target = document.getElementById('lounge-' + key);
+    if(target) target.classList.add('active');
+  });
+});
+
+function sendLoungeChat(){
+  var input = document.getElementById('loungeInput');
+  var text = input.value.trim();
+  if(!text) return;
+  var now = new Date();
+  var h = now.getHours();
+  var m = now.getMinutes();
+  var ampm = h >= 12 ? '오후' : '오전';
+  if(h > 12) h -= 12;
+  var timeStr = ampm + ' ' + h + ':' + (m < 10 ? '0'+m : m);
+  var html = '<div class="chat-bubble mine" style="animation:fadeInUp .3s ease;">'+text+'<div class="chat-time">'+timeStr+'</div></div>';
+  document.getElementById('chatArea').insertAdjacentHTML('beforeend', html);
+  input.value = '';
+  // Auto-scroll to bottom
+  var chatPanel = document.getElementById('lounge-chat');
+  chatPanel.scrollTop = chatPanel.scrollHeight;
+  // Auto reply after 1.5s
+  setTimeout(function(){
+    var replies = [
+      {name:'서연맘 🌟', text:'맞아요 ㅎㅎ 공감이에요~ 😊'},
+      {name:'민준맘 💎', text:'우리도 그래요!! 같은 고민이네 ㅋㅋ'},
+      {name:'수아맘 ⭐', text:'오 좋은 정보 감사해요! 👍'},
+      {name:'하윤맘 🌸', text:'저도 궁금했는데 다들 답변 감사요~'},
+      {name:'지우맘 🌱', text:'ㅋㅋㅋ 완전 공감!! 💛'}
+    ];
+    var r = replies[Math.floor(Math.random()*replies.length)];
+    var now2 = new Date();
+    var h2 = now2.getHours(); var m2 = now2.getMinutes();
+    var ampm2 = h2>=12?'오후':'오전'; if(h2>12) h2-=12;
+    var replyHtml = '<div class="chat-bubble other" style="animation:fadeInUp .3s ease;"><div class="chat-name">'+r.name+'</div>'+r.text+'<div class="chat-time">'+ampm2+' '+h2+':'+(m2<10?'0'+m2:m2)+'</div></div>';
+    document.getElementById('chatArea').insertAdjacentHTML('beforeend', replyHtml);
+    chatPanel.scrollTop = chatPanel.scrollHeight;
+  }, 1500);
+}
+
+// Enter key for lounge chat
+document.getElementById('loungeInput').addEventListener('keydown', function(e){
+  if(e.key === 'Enter') sendLoungeChat();
+});
+
+// ─── 리뷰약속 상세 ───
+function openReviewPromise(data){
+  document.getElementById('rpHeroImg').style.background = data.bg;
+  document.getElementById('rpHeroImg').childNodes[0].textContent = data.emoji;
+  document.getElementById('rpStatus').textContent = data.status === 'live' ? '응모중' : '종료';
+  document.getElementById('rpStatus').className = 'rp-status ' + data.status;
+  document.getElementById('rpBrand').textContent = data.brand;
+  document.getElementById('rpName').textContent = data.name;
+  document.getElementById('rpPeriod').textContent = data.period;
+  document.getElementById('rpSlots').textContent = data.slots;
+  document.getElementById('rpStars').textContent = data.stars;
+  document.getElementById('rpReviewDest').textContent = data.dest;
+  document.getElementById('rpApplicants').textContent = data.applicants;
+  // 제품 정보
+  var infoBox = document.querySelectorAll('#s-review-promise .rp-condition')[1];
+  if(infoBox){
+    var lines = data.info.split('\n');
+    infoBox.innerHTML = '<div style="font-size:13px;line-height:1.8;color:var(--text);"><strong>'+lines[0]+'</strong><br>'+lines.slice(1).join('<br>')+'</div>';
+  }
+  // 체험 조건
+  var condBox = document.querySelectorAll('#s-review-promise .rp-condition')[0];
+  if(condBox && data.conditions){
+    condBox.innerHTML = data.conditions.map(function(c){ return '<div class="rp-condition-item">'+c+'</div>'; }).join('');
+  }
+  goSub('s-review-promise');
+}
+
+function checkReviewWin(){
+  var modal = document.getElementById('rpModal');
+  var isWin = Math.random() > 0.4; // 60% 확률로 당첨 데모
+  if(isWin){
+    document.getElementById('rpModalEmoji').textContent = '🎉';
+    document.getElementById('rpModalTitle').textContent = '축하합니다!';
+    document.getElementById('rpModalDesc').innerHTML = '체험단에 선정되었어요! 🥳<br>제품이 곧 배송됩니다.<br>수령 후 7일 이내에 리뷰를 작성해주세요.';
+  } else {
+    document.getElementById('rpModalEmoji').textContent = '😢';
+    document.getElementById('rpModalTitle').textContent = '아쉽지만...';
+    document.getElementById('rpModalDesc').innerHTML = '이번 체험단에는 선정되지 않았어요.<br>다음 기회에 꼭 만나요! 💪<br>다른 리뷰약속도 확인해보세요.';
+  }
+  modal.classList.add('show');
+}
+
+function closeReviewModal(){
+  document.getElementById('rpModal').classList.remove('show');
+}
+
+// ─── 별똥별마켓 seg tab switch ───
+var stdTabMap = ['std-tab-review','std-tab-raffle','std-tab-exchange','std-tab-welcome'];
+document.querySelectorAll('.market-seg-tab').forEach(function(tab, idx){
+  tab.addEventListener('click', function(){
+    document.querySelectorAll('.market-seg-tab').forEach(function(t){ t.classList.remove('active'); });
+    tab.classList.add('active');
+    stdTabMap.forEach(function(id){
+      var el = document.getElementById(id);
+      if(el) el.style.display = 'none';
+    });
+    var target = document.getElementById(stdTabMap[idx]);
+    if(target) target.style.display = '';
+  });
+});
+
+// ─── Info tabs switch ───
+document.querySelectorAll('#info-tabs .seg-tab').forEach(function(tab){
+  tab.addEventListener('click', function(){
+    document.querySelectorAll('#info-tabs .seg-tab').forEach(function(t){ t.classList.remove('active'); });
+    tab.classList.add('active');
+    var key = tab.getAttribute('data-info');
+    ['info-all','info-dev','info-health','info-nutrition'].forEach(function(id){
+      var el = document.getElementById(id);
+      if(el) el.classList.remove('active');
+    });
+    var target = document.getElementById(key);
+    if(target) target.classList.add('active');
+  });
+});
+
+// ─── Topic card click → show posts ───
+var topicPosts = {
+  '수유/이유식': [
+    {name:'서연맘',tier:'🌟 별똥별맘',t:'t2',avatar:'👶',g:'g2',age:'6개월',time:'4시간 전',body:'6개월 이유식 시작했는데 쌀미음부터 하고 있어요 🍚<br>다들 이유식 언제 시작하셨나요?',tags:'#이유식시작 #6개월아기'},
+    {name:'도윤맘',tier:'⭐ 별맘',t:'t1',avatar:'🐣',g:'g1',age:'8개월',time:'어제',body:'중기이유식 양이 늘어서 걱정이에요<br>하루 2끼 먹이는데 한끼에 120ml정도 먹어요<br>이정도면 괜찮은건가요?',tags:'#중기이유식 #8개월'},
+    {name:'시우맘',tier:'🌱 새싹맘',t:'t1',avatar:'🐥',g:'g4',age:'5개월',time:'어제',body:'모유 + 분유 혼합수유 중인데<br>이유식 시작하면 수유량 줄여야 하나요?',tags:'#혼합수유 #이유식'}
+  ],
+  '수면/밤잠': [
+    {name:'하은맘',tier:'⭐ 별맘',t:'t1',avatar:'🐥',g:'g1',age:'11개월',time:'3시간 전',body:'밤중수유 끊은 지 2주째인데<br>아직도 새벽에 한번씩 깨요 😴<br>혹시 이게 정상인가요?',tags:'#밤중수유 #수면'},
+    {name:'유준맘',tier:'🌟 별똥별맘',t:'t2',avatar:'👶',g:'g2',age:'7개월',time:'5시간 전',body:'퍼버법 3일째인데 울음이 점점 줄고 있어요!<br>처음 30분 울던 게 이제 10분이면 잠들어요',tags:'#퍼버법 #수면교육'}
+  ],
+  '육아템 추천': [
+    {name:'하은맘',tier:'⭐ 별맘',t:'t1',avatar:'🐥',g:'g1',age:'11개월',time:'2시간 전',body:'아토팜 로션 써봤는데 진짜 좋아요 🥹<br>발림성도 좋고 무향이라 아기한테 안심!',tags:'#아기로션 #육아템추천'},
+    {name:'수아맘',tier:'⭐ 별맘',t:'t1',avatar:'🐰',g:'g1',age:'14개월',time:'어제',body:'놀이방 매트 추천 부탁드려요!<br>폴더매트 이음새 사이로 과자가 다 들어가요 😅',tags:'#놀이매트 #육아템'}
+  ],
+  '발달/성장': [
+    {name:'민준맘',tier:'💎 인증단',t:'t3',avatar:'🦊',g:'g3',age:'24개월',time:'어제',body:'두돌 지나니까 말이 갑자기 트이네요 🤩<br>어제 처음으로 "엄마 사랑해" 했는데 울 뻔 ㅠㅠ',tags:'#두돌아기 #언어발달'},
+    {name:'지안맘',tier:'🌱 새싹맘',t:'t1',avatar:'🌸',g:'g4',age:'9개월',time:'오늘',body:'9개월인데 아직 기지 못해요...<br>주변 아기들은 다 기는데 괜찮은 건지 걱정이에요',tags:'#발달걱정 #9개월'}
+  ],
+  '건강/병원': [
+    {name:'지우맘',tier:'🌱 새싹맘',t:'t1',avatar:'🌸',g:'g4',age:'3개월',time:'5시간 전',body:'배앓이가 너무 심해요 😭<br>가스 찬 것 같은데 어떻게 해주시나요?',tags:'#배앓이 #3개월아기'}
+  ],
+  '놀이/교육': [
+    {name:'예은맘',tier:'⭐ 별맘',t:'t1',avatar:'🐱',g:'g2',age:'18개월',time:'오늘',body:'집에서 할 수 있는 감각놀이 추천해요!<br>쌀에 장난감 숨겨놓기 — 소근육 발달에 최고 👍',tags:'#감각놀이 #18개월'}
+  ],
+  '산후조리': [
+    {name:'새봄맘',tier:'🌱 새싹맘',t:'t1',avatar:'🌷',g:'g4',age:'2개월',time:'오늘',body:'산후조리원 나온 지 2주인데<br>허리가 너무 아파요... 산후도우미분 추천 있으실까요?',tags:'#산후조리 #허리통증'}
+  ],
+  '자유수다': [
+    {name:'민준맘',tier:'💎 인증단',t:'t3',avatar:'🦊',g:'g3',age:'24개월',time:'2시간 전',body:'오늘 아기가 뽀뽀하면서 "맘마~ 사랑!" 했는데<br>이거 완전 세상 다 가진 기분이에요 🥰🥰',tags:'#육아일상 #행복'},
+    {name:'수아맘',tier:'⭐ 별맘',t:'t1',avatar:'🐰',g:'g1',age:'14개월',time:'3시간 전',body:'육아하다보면 나만의 시간이 진짜 없잖아요<br>다들 자기만의 힐링타임 어떻게 만드세요? ☕',tags:'#엄마힐링 #자유수다'}
+  ]
+};
+
+document.querySelectorAll('.topic-card').forEach(function(card){
+  card.addEventListener('click', function(){
+    var topicName = card.querySelector('.tc-name').textContent;
+    document.getElementById('topicTitle').textContent = topicName;
+    var area = document.getElementById('topicPostsArea');
+    var posts = topicPosts[topicName] || [];
+    var html = '<div style="padding:8px 14px 4px;font-size:11px;color:var(--sub);">📁 '+topicName+' · 글 '+posts.length+'개</div>';
+    posts.forEach(function(p){
+      html += buildPostHTML(p);
+    });
+    if(posts.length === 0) html += '<div style="text-align:center;padding:40px;color:var(--sub);">아직 글이 없어요 ✍️</div>';
+    area.innerHTML = html;
+    goSub('s-topic-posts');
+  });
+});
+
+// ─── Month card click → show posts ───
+var monthPosts = {
+  '신생아 (0~2개월)': [
+    {name:'새봄맘',tier:'🌱 새싹맘',t:'t1',avatar:'🌷',g:'g4',age:'2개월',time:'오늘',body:'신생아 배꼽 소독 어떻게 하시나요?<br>아직 떨어지지 않았는데 걱정이에요 😟',tags:'#신생아 #배꼽소독'},
+    {name:'리안맘',tier:'🌱 새싹맘',t:'t1',avatar:'🐣',g:'g1',age:'1개월',time:'어제',body:'모유수유 자세가 너무 어려워요<br>C자 홀드로 하는데 맞는 건지 모르겠어요 😭',tags:'#모유수유 #신생아'}
+  ],
+  '3~6개월': [
+    {name:'지우맘',tier:'🌱 새싹맘',t:'t1',avatar:'🌸',g:'g4',age:'3개월',time:'5시간 전',body:'배앓이가 너무 심해요 😭<br>가스 찬 것 같은데 어떻게 해주시나요?',tags:'#배앓이 #3개월아기'},
+    {name:'서연맘',tier:'🌟 별똥별맘',t:'t2',avatar:'👶',g:'g2',age:'6개월',time:'4시간 전',body:'이유식 시작했는데 쌀미음 잘 먹어서 감동 🥹<br>내일은 찹쌀미음 도전해볼까 해요',tags:'#이유식 #6개월'}
+  ],
+  '7~12개월': [
+    {name:'하은맘',tier:'⭐ 별맘',t:'t1',avatar:'🐥',g:'g1',age:'11개월',time:'2시간 전',body:'아토팜 로션 써봤는데 진짜 좋아요 🥹<br>발림성도 좋고 무향이라 아기한테 안심!',tags:'#아기로션 #육아템추천'},
+    {name:'도윤맘',tier:'⭐ 별맘',t:'t1',avatar:'🐣',g:'g1',age:'8개월',time:'어제',body:'이앓이가 시작된 것 같아요 😭<br>침을 엄청 흘리고 뭐든 입에 넣으려고 해요',tags:'#이앓이 #8개월'},
+    {name:'지안맘',tier:'🌱 새싹맘',t:'t1',avatar:'🌸',g:'g4',age:'9개월',time:'오늘',body:'9개월인데 아직 기지 못해요...<br>의사선생님은 괜찮다고 하는데 불안해요',tags:'#발달걱정 #9개월'}
+  ],
+  '13~24개월': [
+    {name:'민준맘',tier:'💎 인증단',t:'t3',avatar:'🦊',g:'g3',age:'24개월',time:'어제',body:'두돌 지나니까 말이 갑자기 트이네요 🤩<br>어제 처음으로 "엄마 사랑해" 했는데 울 뻔',tags:'#두돌아기 #언어발달'},
+    {name:'수아맘',tier:'⭐ 별맘',t:'t1',avatar:'🐰',g:'g1',age:'14개월',time:'어제',body:'걸음마 시작했는데 자꾸 넘어져요<br>아기 신발 추천 부탁드려요!',tags:'#걸음마 #아기신발'}
+  ],
+  '25~36개월': [
+    {name:'예은맘',tier:'⭐ 별맘',t:'t1',avatar:'🐱',g:'g2',age:'30개월',time:'오늘',body:'어린이집 적응기간 2주째인데<br>아침마다 안 가겠다고 울어서 마음이 아파요 ㅠㅠ',tags:'#어린이집 #적응기간'}
+  ],
+  '37개월 이상': [
+    {name:'소율맘',tier:'🌟 별똥별맘',t:'t2',avatar:'🌼',g:'g2',age:'40개월',time:'오늘',body:'유치원 보내는 중인데 친구관계 고민이에요<br>혼자 노는 걸 좋아하는데 괜찮은 걸까요?',tags:'#유치원 #사회성'}
+  ]
+};
+
+document.querySelectorAll('.month-card').forEach(function(card){
+  card.addEventListener('click', function(){
+    var monthName = card.querySelector('.mc-info h5').textContent.replace(/\s*←.*$/,'');
+    document.getElementById('monthTitle').textContent = monthName;
+    var area = document.getElementById('monthPostsArea');
+    var posts = monthPosts[monthName] || [];
+    var html = '<div style="padding:8px 14px 4px;font-size:11px;color:var(--sub);">👶 '+monthName+' 엄마들의 글</div>';
+    posts.forEach(function(p){
+      html += buildPostHTML(p);
+    });
+    if(posts.length === 0) html += '<div style="text-align:center;padding:40px;color:var(--sub);">아직 글이 없어요 ✍️</div>';
+    area.innerHTML = html;
+    goSub('s-month-posts');
+  });
+});
+
+// ─── Build post HTML helper ───
+function buildPostHTML(p){
+  return '<div class="post" onclick="openPostDetail(this)"><div class="post-head"><div class="p-avatar '+p.g+'">'+p.avatar+'</div><div><div class="p-name">'+p.name+'</div><div class="p-badges"><span class="p-tier '+p.t+'">'+p.tier+'</span> <span class="p-meta">'+p.age+' · '+p.time+'</span></div></div><div class="p-more">⋯</div></div><div class="p-body">'+p.body+'<br><span class="tag">'+p.tags+'</span></div><div class="reactions"><button class="react-btn" onclick="event.stopPropagation();toggleReact(this)"><div class="ri">😢</div><div class="rc">'+Math.floor(Math.random()*30)+'</div><div class="rl">공감</div></button><button class="react-btn" onclick="event.stopPropagation();toggleReact(this)"><div class="ri">😂</div><div class="rc">'+Math.floor(Math.random()*10)+'</div><div class="rl">ㅋㅋ</div></button><button class="react-btn" onclick="event.stopPropagation();toggleReact(this)"><div class="ri">💡</div><div class="rc">'+Math.floor(Math.random()*20)+'</div><div class="rl">도움돼요</div></button><button class="react-btn" onclick="event.stopPropagation();toggleReact(this)"><div class="ri">💪</div><div class="rc">'+Math.floor(Math.random()*15)+'</div><div class="rl">응원해요</div></button><button class="react-btn" onclick="event.stopPropagation();toggleReact(this)"><div class="ri">💬</div><div class="rc">'+Math.floor(Math.random()*20)+'</div><div class="rl">댓글</div></button><button class="react-btn"><div class="ri">🔗</div><div class="rc"></div><div class="rl">공유</div></button></div></div>';
+}
+
+// ─── Post detail + Comments ───
+var currentComments = [];
+var demoComments = [
+  {name:'서연맘',avatar:'👶',g:'g2',text:'저도 같은 고민이에요! 댓글 보고 도움 많이 됐어요 👍',time:'1시간 전'},
+  {name:'민준맘',avatar:'🦊',g:'g3',text:'우리 아기때도 그랬어요~ 금방 지나가니까 힘내세요 💪',time:'2시간 전'},
+  {name:'수아맘',avatar:'🐰',g:'g1',text:'공감 100번 누르고 싶어요 ㅠㅠ',time:'3시간 전'}
+];
+
+function openPostDetail(postEl){
+  var content = document.getElementById('postDetailContent');
+  var clone = postEl.cloneNode(true);
+  clone.style.margin = '0';
+  clone.style.borderRadius = '0';
+  clone.style.border = 'none';
+  clone.style.borderBottom = '1px solid var(--border)';
+  clone.removeAttribute('onclick');
+  content.innerHTML = '';
+  content.appendChild(clone);
+
+  currentComments = JSON.parse(JSON.stringify(demoComments));
+  renderComments();
+  goSub('s-post-detail');
+}
+
+function renderComments(){
+  var list = document.getElementById('commentList');
+  var html = '';
+  currentComments.forEach(function(c){
+    html += '<div class="comment-item"><div class="ci-avatar '+c.g+'" style="background:linear-gradient(135deg,#E0E0E0,#BDBDBD);">'+c.avatar+'</div><div class="ci-body"><span class="ci-name">'+c.name+'</span><span class="ci-meta">'+c.time+'</span><div class="ci-text">'+c.text+'</div><div class="ci-actions"><span onclick="this.textContent=this.textContent===\'❤️ 좋아요\'?\'🤍 좋아요\':\'❤️ 좋아요\'">🤍 좋아요</span><span>↩️ 답글</span></div></div></div>';
+  });
+  list.innerHTML = html;
+  document.getElementById('commentCount').textContent = currentComments.length;
+}
+
+function addComment(){
+  var input = document.getElementById('commentInput');
+  var text = input.value.trim();
+  if(!text) return;
+  currentComments.unshift({name:'하은맘',avatar:'🐥',g:'g1',text:text,time:'방금'});
+  input.value = '';
+  renderComments();
+  document.getElementById('commentCount').textContent = currentComments.length;
+}
+
+// ─── 오늘의 질문 ───
+document.querySelectorAll('.daily-q').forEach(function(el){
+  el.addEventListener('click', function(){ goSub('s-daily-q-detail'); });
+});
+
+function addDQAnswer(){
+  var input = document.getElementById('dqAnswerInput');
+  var text = input.value.trim();
+  if(!text) return;
+  var html = '<div class="answer-item" style="animation:fadeInUp .3s ease;border:2px solid var(--pri);"><div class="answer-top"><div class="answer-avatar" style="background:linear-gradient(135deg,#E8C9A0,#D4AA78);">🐥</div><span class="answer-name">하은맘</span><span class="answer-meta">⭐ 별맘 · 11개월 · 방금</span></div><div class="answer-text">'+text+'</div><div class="answer-like on">❤️ 1</div></div>';
+  document.getElementById('dqNewAnswers').insertAdjacentHTML('afterbegin', html);
+  input.value = '';
+}
+
+// ─── Make existing posts clickable ───
+document.querySelectorAll('#comm-all .post, #comm-popular .post').forEach(function(post){
+  post.style.cursor = 'pointer';
+  post.addEventListener('click', function(e){
+    if(e.target.closest('.react-btn')) return;
+    openPostDetail(post);
+  });
+});
+
+// ─── Animate grade bar on profile view ───
+var gradeAnimated = false;
+var observer = new MutationObserver(function(){
+  var profileScreen = document.getElementById('s-profile');
+  if(profileScreen.classList.contains('active') && !gradeAnimated){
+    gradeAnimated = true;
+    setTimeout(function(){
+      var fill = profileScreen.querySelector('.grade-bar-fill');
+      if(fill) fill.style.width = '42%';
+    }, 300);
+  }
+});
+observer.observe(document.getElementById('s-profile'), { attributes: true, attributeFilter: ['class'] });
+</script>
+</body>
+</html>
