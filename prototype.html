@@ -9,10 +9,10 @@
 
   *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
   :root{
-    --pri:#6C5CE7;--pri-l:#A29BFE;--pri-d:#5A4BD1;
-    --acc:#FF6B6B;--warm:#FFA94D;--mint:#00B894;--sky:#74B9FF;
-    --pink:#E84393;--yellow:#FFEAA7;
-    --bg:#F5F3FF;--card:#FFF;--text:#2D2A45;--sub:#8E8BA3;--border:#EBE8F5;
+    --pri:#A1788B;--pri-l:#C9A5B5;--pri-d:#8A6175;
+    --acc:#CF7C6B;--warm:#C4A265;--mint:#6B9E82;--sky:#7EA8B8;
+    --pink:#B87190;--yellow:#F0DFBE;
+    --bg:#F8F5F2;--card:#FFF;--text:#3A2F33;--sub:#97898D;--border:#E8E0DC;
     --radius:14px;
     --nav-h:60px;
     --safe-bottom:env(safe-area-inset-bottom, 0px);
@@ -108,7 +108,7 @@
   .fab-write{
     position:absolute;bottom:calc(var(--nav-h) + var(--safe-bottom) + 18px);right:16px;
     z-index:50;width:52px;height:52px;border-radius:50%;
-    background:linear-gradient(135deg,var(--pri),#8B5CF6);
+    background:linear-gradient(135deg,var(--pri),#B88DA0);
     color:#fff;border:none;cursor:pointer;
     display:flex;align-items:center;justify-content:center;
     font-size:24px;box-shadow:0 4px 16px rgba(108,92,231,0.4);
@@ -411,7 +411,7 @@
   }
   .std-logo{
     width:36px;height:36px;border-radius:50%;
-    background:linear-gradient(135deg,var(--pri),#8B5CF6);
+    background:linear-gradient(135deg,var(--pri),#B88DA0);
     display:flex;align-items:center;justify-content:center;
     font-size:18px;flex-shrink:0;
   }
@@ -469,7 +469,7 @@
   }
   .std-card-meta .chip{
     display:inline-flex;align-items:center;gap:3px;
-    background:#F5F3FF;padding:4px 10px;border-radius:8px;font-weight:600;
+    background:#F3EBE9;padding:4px 10px;border-radius:8px;font-weight:600;
   }
   .std-card-meta .chip.star{color:var(--warm);background:#FFF8E6;}
   .std-card-meta .chip.people{color:var(--pri);background:#F0EDFF;}
@@ -519,7 +519,7 @@
   .prod-tag{font-size:8px;padding:2px 5px;border-radius:5px;background:var(--bg);color:var(--pri);font-weight:600;}
 
   /* ═══════ VOTE DETAIL ═══════ */
-  .vd-header{padding:16px 18px;background:linear-gradient(135deg,var(--pri),#8B5CF6);color:#fff;}
+  .vd-header{padding:16px 18px;background:linear-gradient(135deg,var(--pri),#B88DA0);color:#fff;}
   .vd-header h2{font-size:18px;font-weight:800;margin-bottom:4px;}
   .vd-header p{font-size:12px;opacity:0.8;}
   .vd-item{
@@ -635,6 +635,77 @@
   .vc-status-badge.done{background:#F0EDFF;color:var(--pri);}
   .vc-status-badge.hot{background:#FFF0F0;color:var(--acc);}
 
+  /* ── Trust Bar ── */
+  .std-trust-bar{
+    display:flex;gap:8px;padding:10px 14px;overflow-x:auto;scrollbar-width:none;
+  }
+  .std-trust-bar::-webkit-scrollbar{display:none;}
+  .std-trust-item{
+    display:flex;align-items:center;gap:4px;flex-shrink:0;
+    font-size:10px;font-weight:600;color:var(--text);
+    background:#fff;padding:6px 12px;border-radius:10px;
+    border:1px solid var(--border);
+  }
+  .std-trust-item .sti-icon{font-size:14px;}
+
+  /* ── Weekly Pick ── */
+  .std-weekly{
+    margin:12px 14px;padding:16px;border-radius:16px;
+    background:linear-gradient(135deg,#F8F0ED,#EDE3E0);
+    border:1.5px solid var(--pri-l);position:relative;overflow:hidden;cursor:pointer;
+    transition:transform .15s;
+  }
+  .std-weekly:active{transform:scale(0.98);}
+  .std-weekly::before{
+    content:'PICK';position:absolute;top:8px;right:-10px;
+    font-size:60px;font-weight:900;color:var(--pri);opacity:0.06;
+    transform:rotate(-15deg);
+  }
+  .std-weekly-label{
+    display:inline-flex;align-items:center;gap:4px;
+    font-size:10px;font-weight:700;color:#fff;
+    background:linear-gradient(135deg,var(--pri),var(--pri-d));padding:3px 10px;border-radius:8px;margin-bottom:10px;
+  }
+  .std-weekly h4{font-size:15px;font-weight:800;margin-bottom:4px;}
+  .std-weekly p{font-size:11px;color:var(--sub);line-height:1.6;margin-bottom:10px;}
+  .std-weekly-meta{display:flex;gap:8px;flex-wrap:wrap;}
+  .std-weekly-meta span{font-size:10px;color:var(--pri);font-weight:600;
+    background:#fff;padding:4px 10px;border-radius:8px;}
+
+  /* ── Expert Tip ── */
+  .expert-tip{
+    margin:0 14px 12px;padding:12px 14px;border-radius:12px;
+    background:#fff;border:1px solid var(--border);
+    display:flex;align-items:flex-start;gap:10px;
+    box-shadow:0 2px 8px rgba(0,0,0,0.03);
+  }
+  .expert-tip-icon{
+    width:36px;height:36px;border-radius:10px;flex-shrink:0;
+    background:linear-gradient(135deg,#E8F5E9,#C8E6C9);
+    display:flex;align-items:center;justify-content:center;font-size:18px;
+  }
+  .expert-tip-body{flex:1;}
+  .expert-tip-body .et-label{font-size:9px;font-weight:700;color:var(--mint);margin-bottom:2px;}
+  .expert-tip-body p{font-size:11px;color:var(--text);line-height:1.6;font-weight:500;}
+
+  /* ── Safety Grade Badge ── */
+  .safety-grade{
+    display:inline-flex;align-items:center;justify-content:center;
+    width:28px;height:28px;border-radius:8px;font-size:13px;font-weight:900;color:#fff;flex-shrink:0;
+  }
+  .safety-grade.grade-a{background:linear-gradient(135deg,#4CAF50,#66BB6A);}
+  .safety-grade.grade-b{background:linear-gradient(135deg,#8BC34A,#9CCC65);}
+  .safety-grade.grade-c{background:linear-gradient(135deg,#FFC107,#FFD54F);color:#795548;}
+  .safety-grade.grade-d{background:linear-gradient(135deg,#FF9800,#FFB74D);}
+  .approved-card-grade{position:absolute;top:6px;right:6px;}
+
+  /* ── Ingredient Tags ── */
+  .ingr-tags{display:flex;flex-wrap:wrap;gap:6px;padding:8px 16px 14px;}
+  .ingr-tag{font-size:10px;font-weight:600;padding:4px 10px;border-radius:8px;}
+  .ingr-tag.safe{background:#ECF3EE;color:var(--mint);}
+  .ingr-tag.warn{background:#FFF8E1;color:#F57F17;}
+  .ingr-tag.bad{background:#FFEBEE;color:#E53935;}
+
   /* 인정템 가로 스크롤 */
   .approved-section{padding:16px 0 0;}
   .approved-section .sec-title{
@@ -665,7 +736,7 @@
   .approved-card-body .a-price{font-size:12px;font-weight:800;color:var(--acc);}
 
   /* ═══════ PROFILE SCREEN ═══════ */
-  .prof-header{text-align:center;padding:40px 18px 20px;background:linear-gradient(135deg,var(--pri),#8B5CF6);color:#fff;}
+  .prof-header{text-align:center;padding:40px 18px 20px;background:linear-gradient(135deg,var(--pri),#B88DA0);color:#fff;}
   .prof-avatar{
     width:72px;height:72px;border-radius:50%;
     background:linear-gradient(135deg,#FFD43B,#FFA94D);
@@ -692,7 +763,7 @@
   .grade-bar-fill{height:100%;border-radius:8px;background:linear-gradient(90deg,var(--pri),var(--pri-l));transition:width 1s ease;}
   .grade-tiers{display:flex;justify-content:space-between;align-items:center;padding:10px 0 0;border-top:1px solid var(--border);}
   .tier{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:9px;color:var(--sub);font-weight:500;}
-  .tier .t-icon{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;background:#F5F3FF;border:1.5px solid var(--border);}
+  .tier .t-icon{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;background:#F3EBE9;border:1.5px solid var(--border);}
   .tier.current .t-icon{background:var(--pri);border-color:var(--pri);}
   .tier.current{color:var(--pri);font-weight:700;}
   .tier.done .t-icon{background:#EBFBEE;border-color:#C3FAD0;}
@@ -886,14 +957,14 @@
   .chat-area{padding:14px;display:flex;flex-direction:column;gap:10px;}
   .chat-bubble{max-width:80%;padding:10px 14px;border-radius:16px;font-size:13px;line-height:1.6;animation:fadeInUp .3s ease;}
   .chat-bubble.other{background:#fff;border:1px solid var(--border);align-self:flex-start;border-bottom-left-radius:4px;}
-  .chat-bubble.mine{background:linear-gradient(135deg,var(--pri),#8B5CF6);color:#fff;align-self:flex-end;border-bottom-right-radius:4px;}
+  .chat-bubble.mine{background:linear-gradient(135deg,var(--pri),#B88DA0);color:#fff;align-self:flex-end;border-bottom-right-radius:4px;}
   .chat-name{font-size:10px;font-weight:700;color:var(--pri);margin-bottom:3px;}
   .chat-time{font-size:9px;color:var(--sub);margin-top:3px;text-align:right;}
   .chat-bubble.mine .chat-time{color:rgba(255,255,255,0.7);}
   .chat-input-area{display:flex;gap:8px;padding:10px 14px;background:#fff;border-top:1px solid var(--border);position:sticky;bottom:0;}
   .chat-input-area input{flex:1;padding:10px 14px;border:1px solid var(--border);border-radius:20px;font-size:13px;outline:none;}
   .chat-input-area input:focus{border-color:var(--pri);}
-  .chat-input-area button{width:38px;height:38px;border-radius:50%;border:none;background:linear-gradient(135deg,var(--pri),#8B5CF6);color:#fff;font-size:16px;cursor:pointer;}
+  .chat-input-area button{width:38px;height:38px;border-radius:50%;border:none;background:linear-gradient(135deg,var(--pri),#B88DA0);color:#fff;font-size:16px;cursor:pointer;}
   .lounge-post{background:#fff;border-radius:14px;margin:10px 14px;padding:14px;box-shadow:0 1px 4px rgba(0,0,0,0.05);}
   .lounge-post-head{display:flex;align-items:center;gap:8px;margin-bottom:8px;}
   .lounge-post-avatar{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;}
@@ -905,7 +976,7 @@
   /* ═══════ 리뷰약속 상세 ═══════ */
   .rp-hero{height:220px;display:flex;align-items:center;justify-content:center;font-size:72px;position:relative;}
   .rp-hero .rp-status{position:absolute;top:14px;left:14px;padding:4px 12px;border-radius:20px;font-size:11px;font-weight:700;color:#fff;}
-  .rp-status.live{background:linear-gradient(135deg,var(--pri),#8B5CF6);}
+  .rp-status.live{background:linear-gradient(135deg,var(--pri),#B88DA0);}
   .rp-status.ended{background:#888;}
   .rp-body{padding:18px;}
   .rp-brand{font-size:12px;color:var(--sub);font-weight:600;margin-bottom:2px;}
@@ -922,7 +993,7 @@
   .rp-btn-group{display:flex;gap:10px;margin-top:20px;}
   .rp-btn{flex:1;padding:15px 0;border:none;border-radius:14px;font-size:14px;font-weight:800;cursor:pointer;transition:all .15s;}
   .rp-btn:active{transform:scale(0.97);}
-  .rp-btn.product{background:linear-gradient(135deg,var(--pri),#8B5CF6);color:#fff;}
+  .rp-btn.product{background:linear-gradient(135deg,var(--pri),#B88DA0);color:#fff;}
   .rp-btn.check{background:#fff;color:var(--pri);border:2px solid var(--pri);}
   .rp-applicants{display:flex;align-items:center;gap:6px;margin-top:16px;font-size:12px;color:var(--sub);}
   .rp-applicants .avatars{display:flex;}
@@ -937,7 +1008,7 @@
   .rp-modal-emoji{font-size:56px;margin-bottom:12px;}
   .rp-modal-title{font-size:18px;font-weight:800;margin-bottom:8px;}
   .rp-modal-desc{font-size:13px;color:var(--sub);line-height:1.6;margin-bottom:20px;}
-  .rp-modal-btn{padding:12px 40px;border:none;border-radius:12px;background:linear-gradient(135deg,var(--pri),#8B5CF6);color:#fff;font-size:14px;font-weight:700;cursor:pointer;}
+  .rp-modal-btn{padding:12px 40px;border:none;border-radius:12px;background:linear-gradient(135deg,var(--pri),#B88DA0);color:#fff;font-size:14px;font-weight:700;cursor:pointer;}
 
   /* ═══════ 공동육아 화면 ═══════ */
   .cp-location{display:flex;align-items:center;gap:8px;padding:12px 16px;background:#fff;border-bottom:1px solid var(--border);}
@@ -968,7 +1039,7 @@
   .cp-card-members .avatars span:first-child{margin-left:0;}
   .cp-card-members .count{font-size:11px;color:var(--sub);font-weight:600;}
   .cp-join-btn{padding:7px 16px;border:none;border-radius:10px;font-size:11px;font-weight:700;cursor:pointer;transition:all .15s;}
-  .cp-join-btn.join{background:linear-gradient(135deg,var(--pri),#8B5CF6);color:#fff;}
+  .cp-join-btn.join{background:linear-gradient(135deg,var(--pri),#B88DA0);color:#fff;}
   .cp-join-btn.joined{background:var(--bg);color:var(--sub);border:1px solid var(--border);}
   .cp-join-btn:active{transform:scale(0.95);}
   .cp-my-card{background:linear-gradient(135deg,#EDE7F6,#E8EAF6);border:2px solid var(--pri);border-radius:16px;padding:16px;margin-bottom:12px;}
@@ -982,7 +1053,7 @@
   .cp-form-row{display:flex;gap:8px;}
   .cp-form-chip{padding:8px 16px;border-radius:20px;border:1.5px solid var(--border);font-size:12px;font-weight:600;cursor:pointer;background:#fff;transition:all .15s;}
   .cp-form-chip.selected{border-color:var(--pri);background:var(--pri);color:#fff;}
-  .cp-submit-btn{width:100%;padding:14px;border:none;border-radius:14px;background:linear-gradient(135deg,var(--pri),#8B5CF6);color:#fff;font-size:14px;font-weight:800;cursor:pointer;transition:all .15s;}
+  .cp-submit-btn{width:100%;padding:14px;border:none;border-radius:14px;background:linear-gradient(135deg,var(--pri),#B88DA0);color:#fff;font-size:14px;font-weight:800;cursor:pointer;transition:all .15s;}
   .cp-submit-btn:active{transform:scale(0.97);}
   .cp-verify-btn{display:block;width:100%;margin-top:12px;padding:12px;border:2px dashed var(--pri);border-radius:12px;background:#F8F5FF;color:var(--pri);font-size:13px;font-weight:700;cursor:pointer;transition:all .15s;}
   .cp-verify-btn:active{transform:scale(0.97);background:#EDE7F6;}
@@ -1294,7 +1365,16 @@
         <div class="std-stat-row">
           <div class="std-stat">🗳️ 진행 중 투표 <strong style="margin:0 0 0 4px;display:inline;">12</strong></div>
           <div class="std-stat">🏅 인정템 <strong style="margin:0 0 0 4px;display:inline;">48</strong>개</div>
+          <div class="std-stat">👩‍👧 참여 엄마 <strong style="margin:0 0 0 4px;display:inline;">1,200+</strong>명</div>
         </div>
+      </div>
+
+      <!-- Trust Bar -->
+      <div class="std-trust-bar">
+        <div class="std-trust-item"><span class="sti-icon">👩‍👧</span> 엄마들이 직접 선정</div>
+        <div class="std-trust-item"><span class="sti-icon">📊</span> 투표로 기준 확정</div>
+        <div class="std-trust-item"><span class="sti-icon">🔬</span> EWG 데이터 참고</div>
+        <div class="std-trust-item"><span class="sti-icon">🏅</span> 기준 충족 인정템</div>
       </div>
 
       <div class="seg-tabs" id="std-screen-tabs">
@@ -1302,8 +1382,29 @@
         <div class="seg-tab">인정템 모아보기</div>
       </div>
 
-      <!-- 투표 진행중 탭 -->
+      <!-- ── 투표 진행중 탭 ── -->
       <div id="std-screen-vote">
+        <!-- Weekly Pick -->
+        <div class="std-weekly" onclick="goSub('s-vote-detail')">
+          <div class="std-weekly-label">⭐ 이번 주 스탠다드 Pick</div>
+          <h4>아기 로션, 정말 안전한 건 뭘까?</h4>
+          <p>286명의 엄마가 직접 세운 기준으로 검증된 로션 6종을 확인해 보세요</p>
+          <div class="std-weekly-meta">
+            <span>🏅 인정템 6종</span>
+            <span>👩‍⚕️ 전문가 검증</span>
+            <span>📊 286명 참여</span>
+          </div>
+        </div>
+
+        <!-- 참고자료 안내 -->
+        <div class="expert-tip">
+          <div class="expert-tip-icon">📚</div>
+          <div class="expert-tip-body">
+            <div class="et-label">투표 참고자료</div>
+            <p>기준 세울 때 <strong>EWG 성분 안전 데이터</strong>를 참고할 수 있어요. 투표 항목마다 관련 성분 정보를 확인해 보세요!</p>
+          </div>
+        </div>
+
         <!-- 카테고리 1: 아기 로션 -->
         <div class="vote-category" onclick="goSub('s-vote-detail')">
           <div class="vc-top">
@@ -1313,6 +1414,11 @@
               <p>보습력 vs 성분 vs 가성비 — 뭐가 가장 중요해요?</p>
             </div>
             <span class="vc-status-badge hot">🔥 HOT</span>
+          </div>
+          <div class="ingr-tags" style="padding:4px 16px 6px;">
+            <span class="ingr-tag safe">📊 EWG 참고</span>
+            <span class="ingr-tag" style="background:var(--bg);color:var(--sub);">세라마이드 A등급</span>
+            <span class="ingr-tag" style="background:var(--bg);color:var(--sub);">판테놀 A등급</span>
           </div>
           <div class="vc-bar-row">
             <div class="vc-bar-track"><div class="vc-bar-fill" style="width:78%;"></div></div>
@@ -1335,6 +1441,11 @@
             </div>
             <span class="vc-status-badge done">✓ 확정</span>
           </div>
+          <div class="ingr-tags" style="padding:4px 16px 6px;">
+            <span class="ingr-tag safe">📊 EWG 참고</span>
+            <span class="ingr-tag" style="background:var(--bg);color:var(--sub);">정제수 99%</span>
+            <span class="ingr-tag" style="background:var(--bg);color:var(--sub);">무파라벤</span>
+          </div>
           <div class="vc-bar-row">
             <div class="vc-bar-track"><div class="vc-bar-fill" style="width:100%;"></div></div>
             <div class="vc-bar-label">412명 참여</div>
@@ -1355,6 +1466,11 @@
               <p>흡수력 vs 피부자극 vs 가격 — 투표 중!</p>
             </div>
             <span class="vc-status-badge active">🟢 진행중</span>
+          </div>
+          <div class="ingr-tags" style="padding:4px 16px 6px;">
+            <span class="ingr-tag safe">📊 EWG 참고</span>
+            <span class="ingr-tag" style="background:var(--bg);color:var(--sub);">순면 커버</span>
+            <span class="ingr-tag warn">△ 형광증백제 주의</span>
           </div>
           <div class="vc-bar-row">
             <div class="vc-bar-track"><div class="vc-bar-fill" style="width:45%;"></div></div>
@@ -1410,67 +1526,78 @@
         </div>
       </div>
 
-      <!-- 인정템 모아보기 탭 -->
+      <!-- ── 인정템 모아보기 탭 (업그레이드) ── -->
       <div id="std-screen-approved" style="display:none;">
         <!-- 아기 로션 인정템 -->
         <div class="approved-section">
-          <div class="sec-title">🧴 아기 로션 인정템 <span style="font-size:11px;color:var(--sub);font-weight:500;">286명이 세운 기준</span></div>
+          <div class="sec-title">🧴 아기 로션 인정템 <span style="font-size:11px;color:var(--sub);font-weight:500;">286명이 세운 기준 · 전문가 검증</span></div>
           <div class="approved-scroll">
             <div class="approved-card" onclick="goSub('s-product-detail')">
-              <div class="approved-card-img" style="background:linear-gradient(135deg,#FFF3E0,#FFE0B2);">🧴<div class="a-badge">🏅 인정템</div></div>
+              <div class="approved-card-img" style="background:linear-gradient(135deg,#FFF3E0,#FFE0B2);">🧴<div class="a-badge">🏅 인정템</div><div class="approved-card-grade"><div class="safety-grade grade-a">A</div></div></div>
               <div class="approved-card-body">
-                <div class="a-criteria">✓ 기준 4/4 충족</div>
+                <div class="a-criteria">✓ 기준 4/4 충족 · EWG 그린</div>
                 <h5>아토팜 MLE 크림 로션 300ml</h5>
                 <div class="a-price">18,900원</div>
               </div>
             </div>
             <div class="approved-card" onclick="goSub('s-product-detail')">
-              <div class="approved-card-img" style="background:linear-gradient(135deg,#E8F5E9,#C8E6C9);">🧴<div class="a-badge">🏅 인정템</div></div>
+              <div class="approved-card-img" style="background:linear-gradient(135deg,#E8F5E9,#C8E6C9);">🧴<div class="a-badge">🏅 인정템</div><div class="approved-card-grade"><div class="safety-grade grade-a">A</div></div></div>
               <div class="approved-card-body">
-                <div class="a-criteria">✓ 기준 4/4 충족</div>
+                <div class="a-criteria">✓ 기준 4/4 충족 · EWG 그린</div>
                 <h5>세타필 베이비 데일리 로션</h5>
                 <div class="a-price">15,200원</div>
               </div>
             </div>
             <div class="approved-card" onclick="goSub('s-product-detail')">
-              <div class="approved-card-img" style="background:linear-gradient(135deg,#F0EDFF,#E8E3FF);">🧴<div class="a-badge">🏅 인정템</div></div>
+              <div class="approved-card-img" style="background:linear-gradient(135deg,#F3EBE9,#EDE3E0);">🧴<div class="a-badge">🏅 인정템</div><div class="approved-card-grade"><div class="safety-grade grade-b">B</div></div></div>
               <div class="approved-card-body">
-                <div class="a-criteria">✓ 기준 3/4 충족</div>
+                <div class="a-criteria">✓ 기준 3/4 충족 · EWG 옐로</div>
                 <h5>라놀린 내츄럴 베이비 로션</h5>
                 <div class="a-price">22,500원</div>
               </div>
             </div>
           </div>
+          <div class="ingr-tags">
+            <span class="ingr-tag safe">✓ 무향료</span>
+            <span class="ingr-tag safe">✓ 무색소</span>
+            <span class="ingr-tag safe">✓ EWG 그린</span>
+            <span class="ingr-tag warn">△ 보존제 함유</span>
+          </div>
         </div>
 
         <!-- 아기 물티슈 인정템 -->
         <div class="approved-section">
-          <div class="sec-title">🧻 아기 물티슈 인정템 <span style="font-size:11px;color:var(--sub);font-weight:500;">412명이 세운 기준</span></div>
+          <div class="sec-title">🧻 아기 물티슈 인정템 <span style="font-size:11px;color:var(--sub);font-weight:500;">412명이 세운 기준 · 전문가 검증</span></div>
           <div class="approved-scroll">
             <div class="approved-card" onclick="goSub('s-product-detail')">
-              <div class="approved-card-img" style="background:linear-gradient(135deg,#E3F2FD,#BBDEFB);">🧻<div class="a-badge">🏅 인정템</div></div>
+              <div class="approved-card-img" style="background:linear-gradient(135deg,#E3F2FD,#BBDEFB);">🧻<div class="a-badge">🏅 인정템</div><div class="approved-card-grade"><div class="safety-grade grade-a">A</div></div></div>
               <div class="approved-card-body">
-                <div class="a-criteria">✓ 기준 5/5 충족</div>
+                <div class="a-criteria">✓ 기준 5/5 충족 · EWG 그린</div>
                 <h5>마더케이 순수물 아기물티슈</h5>
                 <div class="a-price">9,900원</div>
               </div>
             </div>
             <div class="approved-card" onclick="goSub('s-product-detail')">
-              <div class="approved-card-img" style="background:linear-gradient(135deg,#FFF8E6,#FFFDF5);">🧻<div class="a-badge">🏅 인정템</div></div>
+              <div class="approved-card-img" style="background:linear-gradient(135deg,#FFF8E6,#FFFDF5);">🧻<div class="a-badge">🏅 인정템</div><div class="approved-card-grade"><div class="safety-grade grade-a">A</div></div></div>
               <div class="approved-card-body">
-                <div class="a-criteria">✓ 기준 5/5 충족</div>
+                <div class="a-criteria">✓ 기준 5/5 충족 · EWG 그린</div>
                 <h5>베베숲 시그니처 엠보</h5>
                 <div class="a-price">11,200원</div>
               </div>
             </div>
             <div class="approved-card" onclick="goSub('s-product-detail')">
-              <div class="approved-card-img" style="background:linear-gradient(135deg,#FCE4EC,#F8BBD0);">🧻<div class="a-badge">🏅 인정템</div></div>
+              <div class="approved-card-img" style="background:linear-gradient(135deg,#FCE4EC,#F8BBD0);">🧻<div class="a-badge">🏅 인정템</div><div class="approved-card-grade"><div class="safety-grade grade-b">B</div></div></div>
               <div class="approved-card-body">
-                <div class="a-criteria">✓ 기준 4/5 충족</div>
+                <div class="a-criteria">✓ 기준 4/5 충족 · EWG 옐로</div>
                 <h5>궁중비책 순수 물티슈</h5>
                 <div class="a-price">8,500원</div>
               </div>
             </div>
+          </div>
+          <div class="ingr-tags">
+            <span class="ingr-tag safe">✓ 순수 정제수</span>
+            <span class="ingr-tag safe">✓ 무알콜</span>
+            <span class="ingr-tag safe">✓ 무파라벤</span>
           </div>
         </div>
 
@@ -1519,7 +1646,7 @@
                 <span style="background:#FFD43B;">🐥</span>
                 <span style="background:#74B9FF;">👶</span>
                 <span style="background:#FF6B6B;">🌸</span>
-                <span style="background:#A29BFE;">🐰</span>
+                <span style="background:#C9A5B5;">🐰</span>
               </div>
               <span class="count">8/12명</span>
             </div>
@@ -1568,7 +1695,7 @@
             <div class="cp-card-members">
               <div class="avatars">
                 <span style="background:#FECA57;">🌻</span>
-                <span style="background:#A29BFE;">🦋</span>
+                <span style="background:#C9A5B5;">🦋</span>
                 <span style="background:#FF6B6B;">🐞</span>
                 <span style="background:#48DBFB;">🐠</span>
                 <span style="background:#FF9FF3;">🌷</span>
@@ -1621,7 +1748,7 @@
               <span style="background:#FFD43B;">🐥</span>
               <span style="background:#74B9FF;">👶</span>
               <span style="background:#FF6B6B;">🌸</span>
-              <span style="background:#A29BFE;">🐰</span>
+              <span style="background:#C9A5B5;">🐰</span>
             </div>
             <span class="count">멤버 8명</span>
           </div>
@@ -2459,7 +2586,7 @@
         </div>
         <div class="lounge-post">
           <div class="lounge-post-head">
-            <div class="lounge-post-avatar" style="background:linear-gradient(135deg,#A29BFE,#6C5CE7);">🐰</div>
+            <div class="lounge-post-avatar" style="background:linear-gradient(135deg,#C9A5B5,#A1788B);">🐰</div>
             <div>
               <div class="lounge-post-name">수아맘</div>
               <div class="lounge-post-meta">11개월 · 5시간 전</div>
@@ -2570,7 +2697,7 @@
             <span style="background:linear-gradient(135deg,#74B9FF,#339AF0);">👶</span>
             <span style="background:linear-gradient(135deg,#FFD43B,#FFA94D);">🐥</span>
             <span style="background:linear-gradient(135deg,#FF6B6B,#EE5A24);">🌸</span>
-            <span style="background:linear-gradient(135deg,#A29BFE,#6C5CE7);">🐰</span>
+            <span style="background:linear-gradient(135deg,#C9A5B5,#A1788B);">🐰</span>
           </div>
           <span id="rpApplicants">87명이 응모했어요</span>
         </div>
@@ -2796,7 +2923,7 @@
         </div>
         <div class="form-group">
           <label class="form-label">현재 월령</label>
-          <div class="form-input" style="background:#F5F3FF;color:var(--pri);font-weight:700;">11개월</div>
+          <div class="form-input" style="background:#F3EBE9;color:var(--pri);font-weight:700;">11개월</div>
         </div>
         <div class="form-group">
           <label class="form-label">특이사항 (선택)</label>
